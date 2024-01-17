@@ -1,6 +1,14 @@
 import gurobipy as gp
 from gurobipy import GRB
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+import numpy as np
+
+
+
+# Now you can use x_values as a NumPy array
+
 
 delta = 0.25  # Define the time interval in hours
 
@@ -10,9 +18,9 @@ model = gp.Model("Microgrid Optimization")
 # Sets and Parameters
 T = range(1, 97)  # Set of time intervals
 C = [0, 72, 80, 88]  # Set of operation scenarios
+A = {'TillMidday': T[:48], 'EightToSix': list(T[:32]) + list(T[72:]), 'OnlyAtNight': T[80:]} # EV scenarios
 
-# Define EV scenarios
-scenarios = {'TillMidday': T[:48], 'EightToSix': list(T[:32]) + list(T[72:]), 'OnlyAtNight': T[80:]}
+
 
 #PD_data = [158.9, 157.7, 180.0, 180.3, 184.7, 159.1, 130.3, 98.5, 105.9, 193.7, 201.0, 230.4, 245.8,
 #      284.0, 378.0, 418.6, 366.2, 351.1, 419.8, 454.0, 433.8, 369.2, 292.3, 194.2]
@@ -82,6 +90,8 @@ cOS = {t: cOS_values[t - 1] for t in T}
 
 p = {0: 0.985, 72: 0.005, 80: 0.005, 88: 0.005}
 
+pEV = {'TillMidday': 0.25, 'EightToSix': 0.5, 'OnlyAtNight': 0.25}
+
 PSmax = 1000
 IPPVmax = 400
 cIPV = 900
@@ -95,6 +105,7 @@ cIEA = 2000
 EAE0 = 0
 alpha = 0.95
 beta = 0.05
+EEV0 = 0
 
 #EV maximum charge
 MaxEVCharge = 20
@@ -108,155 +119,155 @@ PPVmax = model.addVar(name="PPVmax", lb=0, ub=IPPVmax)
 PGDmax = model.addVar(name="PGDmax", lb=0, ub=IPGDmax)
 PAEmax = model.addVar(name="PAEmax", lb=0) #Both this and bottom one could be selected from a pool
 EAEmax = model.addVar(name="EAEmax", lb=0)
-PS = {(t, c): model.addVar(name=f"PS_{t}_{c}", lb=0) for t in T for c in C}
-PGD = {(t, c): model.addVar(name=f"PGD_{t}_{c}", lb=0) for t in T for c in C}
-xD = {(t, c): model.addVar(name=f"xD_{t}_{c}", lb=0, ub=1) for t in T for c in C}
-PAEi = {(t, c): model.addVar(name=f"PAEi_{t}_{c}", lb=0) for t in T for c in C}
-PAEe = {(t, c): model.addVar(name=f"PAEe_{t}_{c}", lb=0) for t in T for c in C}
-EAE = {(t, c): model.addVar(name=f"EAE_{t}_{c}", lb=0) for t in T for c in C}
+PS = {(t, c, a): model.addVar(name=f"PS_{t}_{c}", lb=0) for t in T for c in C for a in A} # Substation Power in time t, contingency c, and EV scenario a
+PGD = {(t, c, a): model.addVar(name=f"PGD_{t}_{c}", lb=0) for t in T for c in C for a in A}
+xD = {(t, c, a): model.addVar(name=f"xD_{t}_{c}", lb=0, ub=1) for t in T for c in C for a in A}
+PAEi = {(t, c, a): model.addVar(name=f"PAEi_{t}_{c}", lb=0) for t in T for c in C for a in A}
+PAEe = {(t, c, a): model.addVar(name=f"PAEe_{t}_{c}", lb=0) for t in T for c in C for a in A}
+EAE = {(t, c, a): model.addVar(name=f"EAE_{t}_{c}", lb=0) for t in T for c in C for a in A}
 
-# Define the xD_Temp variable as a dictionary
-xD_Temp = {}
-for t in T:
-    for s in scenarios:
-        xD_Temp[t, s] = model.addVar(vtype=gp.GRB.CONTINUOUS, name=f"xD_Temp_{t}_{s}")
-
-# Define binary decision variable for the EV
-TempBatteryAvailable = model.addVars(T, vtype=GRB.BINARY, name="TempBatteryAvailability")
-
-# Define the SOC_Temp variable as a dictionary
-SOC_Temp = {}
-for t in T:
-    for s in scenarios:
-        SOC_Temp[t, s] = model.addVar(vtype=gp.GRB.CONTINUOUS, name=f"SOC_Temp_{t}_{s}")
+PEVi = {(t, c, a): model.addVar(name=f"PAEi_{t}_{c}", lb=0) for t in T for c in C for a in A}
+PEVe = {(t, c, a): model.addVar(name=f"PAEe_{t}_{c}", lb=0) for t in T for c in C for a in A}
+EEV = {(t, c, a): model.addVar(name=f"EAE_{t}_{c}", lb=0) for t in T for c in C for a in A}
 
 # Define binary decision variables for EV availability scenarios
-CEV = {s: model.addVars(scenarios[s], vtype=GRB.BINARY, name=f"BatteryAvailability_{s}") for s in scenarios}
+CEV = {a: model.addVars(A[a], vtype=GRB.BINARY, name=f"BatteryAvailability_{a}") for a in A}
 
 # Objective function
 model.setObjective(
     cIPV * PPVmax + cIT * PGDmax + cIPA * PAEmax + cIEA * EAEmax +
-    365 * gp.quicksum(p[c] * delta * cOS[t] * PS[t, c] for t in T for c in C) +
-    365 * gp.quicksum(p[c] * delta * cOT * PGD[t, c] for t in T for c in C) +
-    365 * gp.quicksum(p[c] * delta * cCC * PD[t] * xD[t, c] for t in T for c in C),
+    365 * gp.quicksum(p[c] * delta * cOS[t] * PS[t, c, a] for t in T for c in C for a in A) +
+    365 * gp.quicksum(p[c] * delta * cOT * PGD[t, c, a] for t in T for c in C for a in A) +
+    365 * gp.quicksum(p[c] * delta * cCC * PD[t] * xD[t, c, a] for t in T for c in C for a in A),
     GRB.MINIMIZE
 )
 
+
+
 # Constraints to ensure the EV is used only during specific hours for each scenario
-for s in scenarios:
+for a in A:
     for c in C:
-        for t in CEV[s]:
-            model.addConstr(xD[t, c] <= CEV[s][t])
+        for t in CEV[a]:
+            model.addConstr(xD[t, c, a] <= CEV[a][t])
 
 # Add constraints for maximum charging and discharging power
 for t in T:
-    for s in scenarios:
-        model.addConstr(xD_Temp[t, s] <= MaxChargePower)  # Maximum charging power
-        model.addConstr(xD_Temp[t, s] >= -MaxDischargePower)  # Maximum discharging power
+    for c in C:
+        for a in A:
+            model.addConstr(PEVi[t, c,  a] <= MaxChargePower)  # Maximum charging power
+            model.addConstr(PEVe[t, c, a] >= -MaxDischargePower)  # Maximum discharging power
 
 # Active power balance constraint
 for t in T:
     for c in C:
-        model.addConstr(
-            PS[t, c] + PGD[t, c] + fPV[t] * PPVmax ==
-            PD[t] * (1 - xD[t, c]) + PAEe[t, c] - PAEi[t, c],
-            name=f"Active_Power_Balance_{t}_{c}"
+        for a in A:
+            model.addConstr(
+                PS[t, c, a] + PGD[t, c, a] + fPV[t] * PPVmax ==
+                PD[t] * (1 - xD[t, c, a]) + PAEe[t, c, a] - PAEi[t, c, a] + PEVe[t, c, a] - PEVi[t, c, a],
+                name=f"Active_Power_Balance_{t}_{c}_{a}"
         )
 
 # Substation capacity constraint
 for t in T:
     for c in C:
-        model.addConstr(
-            PS[t, c] <= PSmax,
-            name=f"Substation_Capacity_{t}_{c}"
+        for a in A:
+            model.addConstr(
+                PS[t, c, a] <= PSmax,
+                name=f"Substation_Capacity_{t}_{c}_{a}"
         )
 
 # Conventional generator capacity constraint
 for t in T:
     for c in C:
-        model.addConstr(
-            PGD[t, c] <= PGDmax,
-            name=f"Generator_Capacity_{t}_{c}"
+        for a in A:
+            model.addConstr(
+                PGD[t, c, a] <= PGDmax,
+                name=f"Generator_Capacity_{t}_{c}_{a}"
         )
 
 # Max injection power from storage constraint
 for t in T:
     for c in C:
-        model.addConstr(
-            PAEi[t, c] <= PAEmax,
-            name=f"Max_Injection_Power_{t}_{c}"
+        for a in A:
+            model.addConstr(
+                PAEi[t, c, a] <= PAEmax,
+                name=f"Max_Injection_Power_{t}_{c}+{a}"
         )
 
 # Max extraction power from storage constraint
 for t in T:
     for c in C:
-        model.addConstr(
-            PAEe[t, c] <= PAEmax,
-            name=f"Max_Extraction_Power_{t}_{c}"
+        for a in A:
+            model.addConstr(
+                PAEe[t, c, a] <= PAEmax,
+                name=f"Max_Extraction_Power_{t}_{c}_{a}"
         )
 
 # Energy storage balance constraint
 for t in T:
     for c in C:
-        if t > 1:
-            model.addConstr(
-                EAE[t, c] == EAE[t - 1, c] + alpha * delta * PAEe[t, c] - delta * PAEi[t, c] / alpha - beta * delta * EAE[t, c],
-                name=f"Energy_Storage_Balance_{t}_{c}"
+        for a in A:
+            if t > 1:
+                model.addConstr(
+                    EAE[t, c, a] == EAE[t - 1, c, a] + alpha * delta * PAEe[t, c, a] - delta * PAEi[t, c, a] / alpha - beta * delta * EAE[t, c, a],
+                    name=f"Energy_Storage_Balance_{t}_{c}_{a}"
             )
 
 # Initial energy storage constraint
 for t in T:
     for c in C:
-        if t == 1:
-            model.addConstr(
-                EAE[t, c] == EAE0 + alpha * delta * PAEe[t, c] - delta * PAEi[t, c] / alpha - beta * delta * EAE[t, c],
-                name=f"Initial_Energy_Storage_{t}_{c}"
-            )
+        for a in A:
+            if t == 1:
+                model.addConstr(
+                    EAE[t, c, a] == EAE0 + alpha * delta * PAEe[t, c, a] - delta * PAEi[t, c, a] / alpha - beta * delta * EAE[t, c, a],
+                    name=f"Initial_Energy_Storage_{t}_{c}"
+                )
 
-# Initialize SOC at the first time step for each scenario
-for s in scenarios:
-    model.addConstr(SOC_Temp[T[0], s] == 0)
-
-# Define the SOC dynamics
-for t in T[1:]:
-    for s in scenarios:
-        if t in scenarios[s]:
-            model.addConstr(SOC_Temp[t, s] == SOC_Temp[t - 1, s] + xD_Temp[t, s] * delta)
-
-# Now you can use xD_Temp in your constraints
+# Initial energy storage constraint
 for t in T:
-    for s in scenarios:
-        model.addConstr(xD_Temp[t, s] <= TempBatteryAvailable[t])
+    for c in C:
+        for a in A:
+            if t == 1:
+                model.addConstr(
+                    EEV[t, c, a] == EEV0 + alpha * delta * PEVe[t, c, a] - delta * PEVi[t, c, a] / alpha - beta * delta * EEV[t, c, a],
+                    name=f"Initial_Energy_Storage_{t}_{c}"
+                )
 
 # Assuming you have a variable TempBatteryAvailable indicating the availability of the temporary battery
-for s in scenarios:
-    model.addConstr(SOC_Temp[T[-1], s] >= 0.75 * MaxEVCharge)
-
+for c in C:
+    for a in A:
+        model.addConstr(EEV[T[-1], c, a] >= 0.75 * MaxEVCharge)
 
 
 # Constraints to relate charging, discharging, and SOC
 for t in T[1:]:
-    for s in scenarios:
-        model.addConstr(SOC_Temp[t, s] == SOC_Temp[t - 1, s] + xD_Temp[t, s] * delta)
-        model.addConstr(SOC_Temp[t, s] <= MaxEVCharge)  # Limit SOC within the battery capacity
+    for c in C:
+        for a in A:
+            if t > 1:
+                model.addConstr(EEV[t, c, a] == EEV[t - 1, c, a] + alpha * delta * PEVe[t, c, a] - delta * PEVi[t, c, a] / alpha - beta * delta * EEV[t, c, a])
+                model.addConstr(EEV[t, c, a] <= MaxEVCharge)  # Limit SOC within the battery capacity
+                model.addConstr(PEVe[t, c, a] <= MaxChargePower) 
+                model.addConstr(PEVi[t, c, a] <= MaxDischargePower) 
 
 
 # Max energy storage capacity constraint
 for t in T:
     for c in C:
-        model.addConstr(
-            EAE[t, c] <= EAEmax,
-            name=f"Max_Energy_Storage_Capacity_{t}_{c}"
+        for a in A:
+            model.addConstr(
+                EAE[t, c, a] <= EAEmax,
+                name=f"Max_Energy_Storage_Capacity_{t}_{c}_{a}"
         )
 
 # Contingency operation constraint
 for c in C:
     for t in range(c, min(max(T), c + int(D / delta)) + 1):
-        if c != 0:
-            model.addConstr(
-                PS[t, c] == 0,
-                name=f"Contingency_Operation_{c}_{t}"
-            )
+        for a in A:
+            if c != 0:
+                model.addConstr(
+                    PS[t, c, a] == 0,
+                    name=f"Contingency_Operation_{c}_{t}_{a}"
+                )
 
 # Solve the model
 model.optimize()
@@ -270,81 +281,94 @@ print(PAEmax)
 print(EAEmax)
 
 # Extract the values for plotting
-PS_values = {(t, c): PS[t, c].x for t in T for c in C}
-PGD_values = {(t, c): PGD[t, c].x for t in T for c in C}
-xE_values = {(t, c): xD[t, c].x for t in T for c in C}
-PAEi_values = {(t, c): PAEi[t, c].x for t in T for c in C}
-PAEe_values = {(t, c): PAEe[t, c].x for t in T for c in C}
-EAE_values = {(t, c): EAE[t, c].x for t in T for c in C}
-xD_Temp_values = {(t, s): xD_Temp[t, s].x if (t, s) in xD_Temp else 0 for t in T for s in scenarios}
+PS_values = {(t, c, a): PS[t, c, a].x for t in T for c in C for a in A}
+PGD_values = {(t, c, a): PGD[t, c, a].x for t in T for c in C for a in A}
 
-# Plotting
-plt.figure(figsize=(15, 30))
+PEVi_values = {(t, c, a): PEVi[t, c, a].x for t in T for c in C for a in A}
+PEVe_values = {(t, c, a): PEVe[t, c, a].x for t in T for c in C for a in A}
 
-# Plot PS for each scenario
-plt.subplot(4, 2, 1)
-for c in C:
-    plt.plot(T, [PS_values[t, c] for t in T], label=f'Scenario {c}')
-plt.title('PS (Active Power from Substation)')
-plt.xlabel('Time')
-plt.ylabel('Power (kW)')
-plt.legend()
+PAEi_values = {(t, c, a): PAEi[t, c, a].x for t in T for c in C for a in A}
+PAEe_values = {(t, c, a): PAEe[t, c, a].x for t in T for c in C for a in A}
+EAE_values = {(t, c, a): EAE[t, c, a].x for t in T for c in C for a in A}
 
-# Plot PGD for each scenario
-plt.subplot(4, 2, 2)
-for c in C:
-    plt.plot(T, [PGD_values[t, c] for t in T], label=f'Scenario {c}')
-plt.title('PGD (Active Power from Conventional Generator)')
-plt.xlabel('Time')
-plt.ylabel('Power (kW)')
-plt.legend()
+# Assuming EEV is a Gurobi variable
+EEV_values = {(t, c, a): EEV[t, c, a].x for t in T for c in C for a in A}
 
-# Plot xE for each scenario
-plt.subplot(4, 2, 3)
-for c in C:
-    plt.plot(T, [xE_values[t, c] for t in T], label=f'Scenario {c}')
-plt.title('xE (Percentage of Load Shedding)')
-plt.xlabel('Time')
-plt.ylabel('Percentage')
-plt.legend()
+fig = plt.figure(figsize=(15, 10))
 
-# Plot PAEi for each scenario
-plt.subplot(4, 2, 4)
-for c in C:
-    plt.plot(T, [PAEi_values[t, c] for t in T], label=f'Scenario {c}')
-plt.title('PAEi (Injected Power to Energy Storage)')
-plt.xlabel('Time')
-plt.ylabel('Power (kW)')
-plt.legend()
+# Substation Power
+ax1 = fig.add_subplot(231, projection='3d')
+for a in A:
+    for c in C:
+        ax1.plot(T, [c] * len(T), [PS_values[t, c, a] for t in T], label=f"PS_{c}_{a}")
 
-# Plot PAEe for each scenario
-plt.subplot(4, 2, 5)
-for c in C:
-    plt.plot(T, [PAEe_values[t, c] for t in T], label=f'Scenario {c}')
-plt.title('PAEe (Extracted Power from Energy Storage)')
-plt.xlabel('Time')
-plt.ylabel('Power (kW)')
-plt.legend()
+ax1.set_xlabel("Time (Interval)")
+ax1.set_ylabel("Contingency")
+ax1.set_zlabel("Substation Power")
+ax1.set_title("Substation Power")
+ax1.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
-# Plot EAE for each scenario
-plt.subplot(4, 2, 6)
-for c in C:
-    plt.plot(T, [EAE_values[t, c] for t in T], label=f'Scenario {c}')
-plt.title('EAE (Energy Stored in Energy Storage)')
-plt.xlabel('Time')
-plt.ylabel('Energy (kWh)')
-plt.legend()
+# Generator Power
+ax2 = fig.add_subplot(232, projection='3d')
+for a in A:
+    for c in C:
+        ax2.plot(T, [c] * len(T), [PGD_values[t, c, a] for t in T], label=f"PGD_{c}_{a}")
 
-# Plot xD_Temp for each scenario
-plt.subplot(4, 2, 7)
-for s in scenarios:
-    plt.plot(T, [xD_Temp_values[t, s] for t in T], label=f'Scenario {s}')
-plt.title('xD_Temp (Temporary Battery Charge)')
-plt.xlabel('Time')
-plt.ylabel('Charge (kW)')
-plt.legend()
+ax2.set_xlabel("Time (Interval)")
+ax2.set_ylabel("Contingency")
+ax2.set_zlabel("Generator Power")
+ax2.set_title("Generator Power")
+ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+
+# EV Charging/Discharging
+ax3 = fig.add_subplot(233, projection='3d')
+for a in A:
+    for c in C:
+        ax3.plot(T, [c] * len(T), [PEVi_values[t, c, a] for t in T], label=f"PEVi_{c}_{a}")
+
+ax3.set_xlabel("Time (Interval)")
+ax3.set_ylabel("Contingency")
+ax3.set_zlabel("EV Charging")
+ax3.set_title("EV Charging")
+ax3.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+
+# Energy Storage
+ax4 = fig.add_subplot(234, projection='3d')
+for a in A:
+    for c in C:
+        ax4.plot(T, [c] * len(T), [EAE_values[t, c, a] for t in T], label=f"EAE_{c}_{a}")
+
+ax4.set_xlabel("Time (Interval)")
+ax4.set_ylabel("Contingency")
+ax4.set_zlabel("Energy Storage")
+ax4.set_title("Energy Storage")
+ax4.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+
+# EEV
+ax5 = fig.add_subplot(235, projection='3d')
+for a in A:
+    for c in C:
+        ax5.plot(T, np.full_like(T, c), EEV_values[t, c, a], label=f"EEV_{c}_{a}")
+
+ax5.set_xlabel('Time Intervals')
+ax5.set_ylabel('Contingency')
+ax5.set_zlabel('EEV')
+ax5.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+
+# EV Discharging
+ax6 = fig.add_subplot(236, projection='3d')
+for a in A:
+    for c in C:
+        ax6.plot(T, [c] * len(T), [PEVe_values[t, c, a] for t in T], label=f"xE_{c}_{a}")
+
+ax6.set_xlabel("Time (Interval)")
+ax6.set_ylabel("Contingency")
+ax6.set_zlabel("EV Discharging")
+ax6.set_title("EV Discharging")
+ax6.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
 plt.tight_layout()
 plt.show()
-# Dispose of the model
+
+
 model.dispose()
