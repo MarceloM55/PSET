@@ -12,12 +12,7 @@ T = range(1, 97)  # Set of time intervals
 C = [0, 72, 80, 88]  # Set of operation scenarios
 
 # Define EV scenarios
-scenarios = {'TillMidday': {'time_intervals': T[:48]},
-                'EightToSix': {'time_intervals': list(T[:32]) + list(T[72:])},
-                'OnlyAtNight': {'time_intervals': T[80:]}}
-
-# Define the time of connection for each scenario
-T_Connect = {'TillMidday': 0, 'EightToSix': [0,72], 'OnlyAtNight': 80}
+scenarios = {'TillMidday': T[:48], 'EightToSix': list(T[:32]) + list(T[72:]), 'OnlyAtNight': T[80:]}
 
 #PD_data = [158.9, 157.7, 180.0, 180.3, 184.7, 159.1, 130.3, 98.5, 105.9, 193.7, 201.0, 230.4, 245.8,
 #      284.0, 378.0, 418.6, 366.2, 351.1, 419.8, 454.0, 433.8, 369.2, 292.3, 194.2]
@@ -87,10 +82,6 @@ cOS = {t: cOS_values[t - 1] for t in T}
 
 p = {0: 0.985, 72: 0.005, 80: 0.005, 88: 0.005}
 
-# Probability variable for EV scenarios
-pEV = {s: model.addVar(vtype=GRB.CONTINUOUS, lb=0, ub=1, name=f"pEV_{s}") for s in scenarios}
-
-
 PSmax = 1000
 IPPVmax = 400
 cIPV = 900
@@ -124,10 +115,6 @@ PAEi = {(t, c): model.addVar(name=f"PAEi_{t}_{c}", lb=0) for t in T for c in C}
 PAEe = {(t, c): model.addVar(name=f"PAEe_{t}_{c}", lb=0) for t in T for c in C}
 EAE = {(t, c): model.addVar(name=f"EAE_{t}_{c}", lb=0) for t in T for c in C}
 
-# Separate xD variable into xE_inject and xE_extract
-xE_inject = {(t, c): model.addVar(name=f"xE_inject_{t}_{c}", lb=0, ub=MaxChargePower) for t in T for c in C}
-xE_extract = {(t, c): model.addVar(name=f"xE_extract_{t}_{c}", lb=0, ub=MaxDischargePower) for t in T for c in C}
-
 # Define the xD_Temp variable as a dictionary
 xD_Temp = {}
 for t in T:
@@ -143,13 +130,8 @@ for t in T:
     for s in scenarios:
         SOC_Temp[t, s] = model.addVar(vtype=gp.GRB.CONTINUOUS, name=f"SOC_Temp_{t}_{s}")
 
-
-
-
-# Create a dictionary to store binary decision variables for each scenario and time interval
-CEV = {(s, t): model.addVar(vtype=GRB.BINARY, name=f"BatteryAvailability_{s}_{t}") 
-       for s, scenario_data in scenarios.items() 
-       for t in scenario_data['time_intervals']}
+# Define binary decision variables for EV availability scenarios
+CEV = {s: model.addVars(scenarios[s], vtype=GRB.BINARY, name=f"BatteryAvailability_{s}") for s in scenarios}
 
 # Objective function
 model.setObjective(
@@ -161,11 +143,10 @@ model.setObjective(
 )
 
 # Constraints to ensure the EV is used only during specific hours for each scenario
-for s, scenario_data in scenarios.items():
-    for t in scenario_data['time_intervals']:
-        model.addConstr(xD[s, t] <= CEV[s, t])
-
-
+for s in scenarios:
+    for c in C:
+        for t in CEV[s]:
+            model.addConstr(xD[t, c] <= CEV[s][t])
 
 # Add constraints for maximum charging and discharging power
 for t in T:
@@ -232,25 +213,15 @@ for t in T:
                 name=f"Initial_Energy_Storage_{t}_{c}"
             )
 
-# Constraints to enforce probability constraints
-model.addConstr(gp.quicksum(pEV[s] for s in scenarios) == 1, name="Probability_Constraint")
-
-# Linking probability variable with EV scenarios
-for s in scenarios:
-    model.addConstr(gp.quicksum(EV_scenario[t, C[0]] for t in scenarios[s]['time_intervals']) == pEV[s])
-
-
 # Initialize SOC at the first time step for each scenario
 for s in scenarios:
     model.addConstr(SOC_Temp[T[0], s] == 0)
 
-# Add constraints for the initial state of charge at the time of connection
-for s, t_connect in T_Connect.items():
-    model.addConstr(SOC_Temp[t_connect, s] == 0.10 * MaxEVCharge)
-
-# Linking probability variable with EV scenarios
-for s in scenarios:
-    model.addConstr(gp.quicksum(EV_scenario[t, C[0]] for t in scenarios[s]['time_intervals']) == pEV[s])
+# Define the SOC dynamics
+for t in T[1:]:
+    for s in scenarios:
+        if t in scenarios[s]:
+            model.addConstr(SOC_Temp[t, s] == SOC_Temp[t - 1, s] + xD_Temp[t, s] * delta)
 
 # Now you can use xD_Temp in your constraints
 for t in T:
@@ -261,12 +232,13 @@ for t in T:
 for s in scenarios:
     model.addConstr(SOC_Temp[T[-1], s] >= 0.75 * MaxEVCharge)
 
+
+
 # Constraints to relate charging, discharging, and SOC
 for t in T[1:]:
     for s in scenarios:
         model.addConstr(SOC_Temp[t, s] == SOC_Temp[t - 1, s] + xD_Temp[t, s] * delta)
         model.addConstr(SOC_Temp[t, s] <= MaxEVCharge)  # Limit SOC within the battery capacity
-
 
 
 # Max energy storage capacity constraint
