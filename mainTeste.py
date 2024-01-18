@@ -31,9 +31,6 @@ scenario_hours_eight_to_six = A['EightToSix']
 # Scenario: OnlyAtNight - EV available only at night
 scenario_hours_only_at_night = A['OnlyAtNight']
 
-print(scenario_hours_only_at_night)
-print(scenario_hours_eight_to_six)
-print(scenario_hours_till_midday)
 #PD_data = [158.9, 157.7, 180.0, 180.3, 184.7, 159.1, 130.3, 98.5, 105.9, 193.7, 201.0, 230.4, 245.8,
 #      284.0, 378.0, 418.6, 366.2, 351.1, 419.8, 454.0, 433.8, 369.2, 292.3, 194.2]
 PD_data = ['158.900000000000006', '158.609473684210542', '158.318947368421050', '158.028421052631586',
@@ -131,16 +128,16 @@ PPVmax = model.addVar(name="PPVmax", lb=0, ub=IPPVmax)
 PGDmax = model.addVar(name="PGDmax", lb=0, ub=IPGDmax)
 PAEmax = model.addVar(name="PAEmax", lb=0) #Both this and bottom one could be selected from a pool
 EAEmax = model.addVar(name="EAEmax", lb=0)
-PS = {(t, c, a): model.addVar(name=f"PS_{t}_{c}", lb=0) for t in T for c in C for a in A} # Substation Power in time t, contingency c, and EV scenario a
-PGD = {(t, c, a): model.addVar(name=f"PGD_{t}_{c}", lb=0) for t in T for c in C for a in A}
-xD = {(t, c, a): model.addVar(name=f"xD_{t}_{c}", lb=0, ub=1) for t in T for c in C for a in A}
-PAEi = {(t, c, a): model.addVar(name=f"PAEi_{t}_{c}", lb=0) for t in T for c in C for a in A}
-PAEe = {(t, c, a): model.addVar(name=f"PAEe_{t}_{c}", lb=0) for t in T for c in C for a in A}
-EAE = {(t, c, a): model.addVar(name=f"EAE_{t}_{c}", lb=0) for t in T for c in C for a in A}
+PS = {(t, c, a): model.addVar(name=f"PS_{t}_{c}_{a}", lb=0) for t in T for c in C for a in A} # Substation Power in time t, contingency c, and EV scenario a
+PGD = {(t, c, a): model.addVar(name=f"PGD_{t}_{c}_{a}", lb=0) for t in T for c in C for a in A}
+xD = {(t, c, a): model.addVar(name=f"xD_{t}_{c}_{a}", lb=0, ub=1) for t in T for c in C for a in A}
+PAEi = {(t, c, a): model.addVar(name=f"PAEi_{t}_{c}_{a}", lb=0) for t in T for c in C for a in A}
+PAEe = {(t, c, a): model.addVar(name=f"PAEe_{t}_{c}_{a}", lb=0) for t in T for c in C for a in A}
+EAE = {(t, c, a): model.addVar(name=f"EAE_{t}_{c}_{a}", lb=0) for t in T for c in C for a in A}
 
-PEVi = {(t, c, a): model.addVar(name=f"PAEi_{t}_{c}", lb=0) for t in T for c in C for a in A}
-PEVe = {(t, c, a): model.addVar(name=f"PAEe_{t}_{c}", lb=0) for t in T for c in C for a in A}
-EEV = {(t, c, a): model.addVar(name=f"EAE_{t}_{c}", lb=0) for t in T for c in C for a in A}
+PEVi = {(t, c, a): model.addVar(name=f"PAEi_{t}_{c}_{a}", lb=0) for t in T for c in C for a in A}
+PEVe = {(t, c, a): model.addVar(name=f"PAEe_{t}_{c}_{a}", lb=0) for t in T for c in C for a in A}
+EEV = {(t, c, a): model.addVar(name=f"EEV_{t}_{c}_{a}", lb=0) for t in T for c in C for a in A}
 
 # Define binary decision variables for EV availability scenarios
 CEV = {a: model.addVars(A[a], vtype=GRB.BINARY, name=f"BatteryAvailability_{a}") for a in A}
@@ -259,7 +256,7 @@ for t in T:
         for a in A:
             if t == 1:
                 model.addConstr(
-                    EAE[t, c, a] == EAE0 + alpha * delta * PAEe[t, c, a] - delta * PAEi[t, c, a] * (1 - EVei[t, c, a])  / alpha - beta * delta * EAE[t, c, a],
+                    EAE[t, c, a] == EAE0 + alpha * delta * PAEe[t, c, a] - delta * PAEi[t, c, a] / alpha - beta * delta * EAE[t, c, a],
                     name=f"Initial_Energy_Storage_{t}_{c}"
                 )
 
@@ -274,26 +271,17 @@ for t in T:
                     EEV[t, c, a] == EEV0 + alpha * delta * PEVe[t, c, a] * EVei[t, c, a] - delta * PEVi[t, c, a] * (1 - EVei[t, c, a]) / alpha - beta * delta * EEV[t, c, a],
                     name=f"Initial_Energy_Storage_{t}_{c}"
                 )
-# Initial energy storage constraint
-for t in T:
-    for c in C:
-        for a in A:
-            if t > 1:
-                model.addConstr(
-                    EEV[t, c, a] == EEV[t - 1, c, a] + alpha * delta * PEVe[t, c, a] * EVei[t, c, a] - delta * PEVi[t, c, a] * (1 - EVei[t, c, a]) / alpha - beta * delta * EEV[t, c, a],
-                    name=f"EEV_Energy_Storage_{t}_{c}"
-                )
-
 
 # Constraints to relate charging, discharging, and SOC
 for t in T[1:]:
     for c in C:
         for a in A:
+            model.addConstr(EEV[t, c, a] <= MaxEVCharge)  # Limit SOC within the battery capacity
+            model.addConstr(PEVe[t, c, a] <= MaxChargePower) 
+            model.addConstr(PEVi[t, c, a] <= MaxDischargePower) 
             if t > 1:
-                model.addConstr(EEV[t, c, a] == EEV[t - 1, c, a] + alpha * delta * PEVe[t, c, a] - delta * PEVi[t, c, a] / alpha - beta * delta * EEV[t, c, a])
-                model.addConstr(EEV[t, c, a] <= MaxEVCharge)  # Limit SOC within the battery capacity
-                model.addConstr(PEVe[t, c, a] <= MaxChargePower) 
-                model.addConstr(PEVi[t, c, a] <= MaxDischargePower) 
+                model.addConstr(EEV[t, c, a] == EEV[t - 1, c, a] + alpha * delta * PEVe[t, c, a] * EVei[t, c, a] - delta * PEVi[t, c, a] * (1 - EVei[t, c, a]) / alpha - beta * delta * EEV[t, c, a])
+            
 
 
 # Max energy storage capacity constraint
@@ -326,6 +314,7 @@ print(PGDmax)
 print(PAEmax)
 print(EAEmax)
 
+print(EEV)
 
 # Extract the values for plotting
 PS_values = {(t, c, a): PS[t, c, a].x for t in T for c in C for a in A}
@@ -344,7 +333,7 @@ EEV_values = {(t, c, a): EEV[t, c, a].x for t in T for c in C for a in A}
 fig = plt.figure(figsize=(15, 10))
 
 # Substation Power
-ax1 = fig.add_subplot(231, projection='3d')
+ax1 = fig.add_subplot(331, projection='3d')
 for a in A:
     for c in C:
         ax1.plot(T, [c] * len(T), [PS_values[t, c, a] for t in T], label=f"PS_{c}_{a}")
@@ -356,7 +345,7 @@ ax1.set_title("Substation Power")
 ax1.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
 # Generator Power
-ax2 = fig.add_subplot(232, projection='3d')
+ax2 = fig.add_subplot(332, projection='3d')
 for a in A:
     for c in C:
         ax2.plot(T, [c] * len(T), [PGD_values[t, c, a] for t in T], label=f"PGD_{c}_{a}")
@@ -368,7 +357,7 @@ ax2.set_title("Generator Power")
 ax2.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
 # EV Charging/Discharging
-ax3 = fig.add_subplot(233, projection='3d')
+ax3 = fig.add_subplot(333, projection='3d')
 for a in A:
     for c in C:
         ax3.plot(T, [c] * len(T), [PEVi_values[t, c, a] for t in T], label=f"PEVi_{c}_{a}")
@@ -380,7 +369,7 @@ ax3.set_title("EV Charging")
 ax3.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
 # Energy Storage
-ax4 = fig.add_subplot(234, projection='3d')
+ax4 = fig.add_subplot(334, projection='3d')
 for a in A:
     for c in C:
         ax4.plot(T, [c] * len(T), [EAE_values[t, c, a] for t in T], label=f"EAE_{c}_{a}")
@@ -392,7 +381,7 @@ ax4.set_title("Energy Storage")
 ax4.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
 # EEV
-ax5 = fig.add_subplot(235, projection='3d')
+ax5 = fig.add_subplot(335, projection='3d')
 for a in A:
     for c in C:
         ax5.plot(T, np.full_like(T, c), EEV_values[t, c, a], label=f"EEV_{c}_{a}")
@@ -404,7 +393,7 @@ ax5.set_title("EEV Storage")
 ax5.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
 # EV Discharging
-ax6 = fig.add_subplot(236, projection='3d')
+ax6 = fig.add_subplot(336, projection='3d')
 for a in A:
     for c in C:
         ax6.plot(T, [c] * len(T), [PEVe_values[t, c, a] for t in T], label=f"xE_{c}_{a}")
@@ -414,6 +403,30 @@ ax6.set_ylabel("Contingency")
 ax6.set_zlabel("EV Discharging")
 ax6.set_title("EV Discharging")
 ax6.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+
+# EV Charging/Discharging
+ax7 = fig.add_subplot(337, projection='3d')
+for a in A:
+    for c in C:
+        ax7.plot(T, [c] * len(T), [PAEe_values[t, c, a] for t in T], label=f"PAEe_{c}_{a}")
+
+ax7.set_xlabel("Time (Interval)")
+ax7.set_ylabel("Contingency")
+ax7.set_zlabel("AE Charging")
+ax7.set_title("AE Charging")
+ax7.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+
+# EV Charging/Discharging
+ax8 = fig.add_subplot(338, projection='3d')
+for a in A:
+    for c in C:
+        ax8.plot(T, [c] * len(T), [PAEi_values[t, c, a] for t in T], label=f"PAEi_{c}_{a}")
+
+ax8.set_xlabel("Time (Interval)")
+ax8.set_ylabel("Contingency")
+ax8.set_zlabel("AE Discharging")
+ax8.set_title("AE Discharging")
+ax8.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
 plt.tight_layout()
 plt.show()
