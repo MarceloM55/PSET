@@ -18,10 +18,22 @@ model = gp.Model("Microgrid Optimization")
 # Sets and Parameters
 T = range(1, 97)  # Set of time intervals
 C = [0, 72, 80, 88]  # Set of operation scenarios
-A = {'TillMidday': T[:48], 'EightToSix': list(T[:32]) + list(T[72:]), 'OnlyAtNight': T[80:]} # EV scenarios
+A = {'TillMidday': list(T[:48]), 'EightToSix': list(T[:32]) + list(T[72:]), 'OnlyAtNight': list(T[80:])} # EV scenarios
 
+# Assuming T is the list of time intervals, you can use the scenarios like this:
 
+# Scenario: TillMidday - EV available till midday
+scenario_hours_till_midday = A['TillMidday']
 
+# Scenario: EightToSix - EV available from 8 AM to 6 PM
+scenario_hours_eight_to_six = A['EightToSix']
+
+# Scenario: OnlyAtNight - EV available only at night
+scenario_hours_only_at_night = A['OnlyAtNight']
+
+print(scenario_hours_only_at_night)
+print(scenario_hours_eight_to_six)
+print(scenario_hours_till_midday)
 #PD_data = [158.9, 157.7, 180.0, 180.3, 184.7, 159.1, 130.3, 98.5, 105.9, 193.7, 201.0, 230.4, 245.8,
 #      284.0, 378.0, 418.6, 366.2, 351.1, 419.8, 454.0, 433.8, 369.2, 292.3, 194.2]
 PD_data = ['158.900000000000006', '158.609473684210542', '158.318947368421050', '158.028421052631586',
@@ -108,11 +120,11 @@ beta = 0.05
 EEV0 = 0
 
 #EV maximum charge
-MaxEVCharge = 20
+MaxEVCharge = 700
 
 # Define maximum charging and discharging power EV
-MaxChargePower = 10  # Adjust this value based on your requirements
-MaxDischargePower = 15  # Adjust this value based on your requirements
+MaxChargePower = 500  # Adjust this value based on your requirements
+MaxDischargePower = 500  # Adjust this value based on your requirements
 
 # Variables
 PPVmax = model.addVar(name="PPVmax", lb=0, ub=IPPVmax)
@@ -133,6 +145,9 @@ EEV = {(t, c, a): model.addVar(name=f"EAE_{t}_{c}", lb=0) for t in T for c in C 
 # Define binary decision variables for EV availability scenarios
 CEV = {a: model.addVars(A[a], vtype=GRB.BINARY, name=f"BatteryAvailability_{a}") for a in A}
 
+# Define binary decision variables for EV availability scenarios
+EVei = {(t, c, a): model.addVar(vtype=GRB.BINARY, name=f"EVBatteryChargeDischarge{a}") for t in T for c in C for a in A} # For EVei = 1, only PEVe > 0, and for EVei = 0, only PVei
+
 # Objective function
 model.setObjective(
     cIPV * PPVmax + cIT * PGDmax + cIPA * PAEmax + cIEA * EAEmax +
@@ -142,7 +157,30 @@ model.setObjective(
     GRB.MINIMIZE
 )
 
+# Assuming T is the list of time intervals
+for t in T:
+    for c in C:
+        for a in A:
+            if t not in scenario_hours_till_midday:
+                model.addConstr(PEVe[t, c, 'TillMidday'] == 0, f"NoCharging_TillMidday_{t}")
+                model.addConstr(PEVi[t, c, 'TillMidday'] == 0, f"NoDischarging_TillMidday_{t}")
 
+            if t not in scenario_hours_eight_to_six:
+                model.addConstr(PEVe[t, c, 'EightToSix'] == 0, f"NoCharging_EightToSix_{t}")
+                model.addConstr(PEVi[t, c, 'EightToSix'] == 0, f"NoDischarging_EightToSix_{t}")
+
+            if t not in scenario_hours_only_at_night:
+                model.addConstr(PEVe[t, c, 'OnlyAtNight'] == 0, f"NoCharging_OnlyAtNight_{t}")
+                model.addConstr(PEVi[t, c, 'OnlyAtNight'] == 0, f"NoDischarging_OnlyAtNight_{t}")
+
+# Assuming you have a variable TempBatteryAvailable indicating the availability of the temporary battery
+for t in T:
+    for c in C:
+        for a in A:
+            if t == 48 and a == 'TillMidday':
+                model.addConstr(EEV[t, c, 'TillMidday'] >= 0.75 * MaxEVCharge, f"minimumExitCharge{t}")
+            if t == 32 and a == 'EightToSix':
+                model.addConstr(EEV[t, c, 'EightToSix'] >= 0.75 * MaxEVCharge, f"minimumExitCharge{t}")
 
 # Constraints to ensure the EV is used only during specific hours for each scenario
 for a in A:
@@ -155,7 +193,7 @@ for t in T:
     for c in C:
         for a in A:
             model.addConstr(PEVi[t, c,  a] <= MaxChargePower)  # Maximum charging power
-            model.addConstr(PEVe[t, c, a] >= -MaxDischargePower)  # Maximum discharging power
+            model.addConstr(PEVe[t, c, a] <= MaxDischargePower)  # Maximum discharging power
 
 # Active power balance constraint
 for t in T:
@@ -166,6 +204,8 @@ for t in T:
                 PD[t] * (1 - xD[t, c, a]) + PAEe[t, c, a] - PAEi[t, c, a] + PEVe[t, c, a] - PEVi[t, c, a],
                 name=f"Active_Power_Balance_{t}_{c}_{a}"
         )
+
+
 
 # Substation capacity constraint
 for t in T:
@@ -219,9 +259,11 @@ for t in T:
         for a in A:
             if t == 1:
                 model.addConstr(
-                    EAE[t, c, a] == EAE0 + alpha * delta * PAEe[t, c, a] - delta * PAEi[t, c, a] / alpha - beta * delta * EAE[t, c, a],
+                    EAE[t, c, a] == EAE0 + alpha * delta * PAEe[t, c, a] - delta * PAEi[t, c, a] * (1 - EVei[t, c, a])  / alpha - beta * delta * EAE[t, c, a],
                     name=f"Initial_Energy_Storage_{t}_{c}"
                 )
+
+
 
 # Initial energy storage constraint
 for t in T:
@@ -229,14 +271,18 @@ for t in T:
         for a in A:
             if t == 1:
                 model.addConstr(
-                    EEV[t, c, a] == EEV0 + alpha * delta * PEVe[t, c, a] - delta * PEVi[t, c, a] / alpha - beta * delta * EEV[t, c, a],
+                    EEV[t, c, a] == EEV0 + alpha * delta * PEVe[t, c, a] * EVei[t, c, a] - delta * PEVi[t, c, a] * (1 - EVei[t, c, a]) / alpha - beta * delta * EEV[t, c, a],
                     name=f"Initial_Energy_Storage_{t}_{c}"
                 )
-
-# Assuming you have a variable TempBatteryAvailable indicating the availability of the temporary battery
-for c in C:
-    for a in A:
-        model.addConstr(EEV[T[-1], c, a] >= 0.75 * MaxEVCharge)
+# Initial energy storage constraint
+for t in T:
+    for c in C:
+        for a in A:
+            if t > 1:
+                model.addConstr(
+                    EEV[t, c, a] == EEV[t - 1, c, a] + alpha * delta * PEVe[t, c, a] * EVei[t, c, a] - delta * PEVi[t, c, a] * (1 - EVei[t, c, a]) / alpha - beta * delta * EEV[t, c, a],
+                    name=f"EEV_Energy_Storage_{t}_{c}"
+                )
 
 
 # Constraints to relate charging, discharging, and SOC
@@ -279,6 +325,7 @@ print(PPVmax)
 print(PGDmax)
 print(PAEmax)
 print(EAEmax)
+
 
 # Extract the values for plotting
 PS_values = {(t, c, a): PS[t, c, a].x for t in T for c in C for a in A}
@@ -353,6 +400,7 @@ for a in A:
 ax5.set_xlabel('Time Intervals')
 ax5.set_ylabel('Contingency')
 ax5.set_zlabel('EEV')
+ax5.set_title("EEV Storage")
 ax5.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
 
 # EV Discharging
