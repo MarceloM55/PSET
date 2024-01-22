@@ -76,7 +76,7 @@ SoCEV  = {(t, c, a): model.addVar(name=f"EEV_{t}_{c}_{a}", lb=0)      for t in �
 # Objective function
 model.setObjective(
     cIPV * PPVmax + cIT * PGDmax + cIPA * PAEmax + cIEA * EAEmax +
-    365 * gp.quicksum(p[c] * Δt * cOS['1'][t-1] * PS[t, c, a] for t in Ωt for c in Ωc for a in Ωa) +
+    365 * gp.quicksum(p[c] * Δt * cOS['1'][t - 1] * PS[t, c, a] for t in Ωt for c in Ωc for a in Ωa) +
     365 * gp.quicksum(p[c] * Δt * cOT * PGD[t, c, a] for t in Ωt for c in Ωc for a in Ωa) +
     365 * gp.quicksum(p[c] * Δt * cCC * PD['1'][t-1] * xD[t, c, a] for t in Ωt for c in Ωc for a in Ωa),
     GRB.MINIMIZE
