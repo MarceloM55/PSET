@@ -252,7 +252,7 @@ for idx, (c, a) in enumerate(Ωc_a_pairs):  # Assuming Ωc_a_pairs is a list of 
     axes1[idx].set_xlabel("Timestamp")
     axes1[idx].set_ylabel("Power [kW]")
     axes1[idx].set_title(f"Power Values - c{c}, a{a}")
-print(cOS)
+
 for idx, (c, a) in enumerate(Ωc_a_pairs1):  # Assuming Ωc_a_pairs is a list of pairs (c, a)
     axes2[idx].plot(Ωt, [EAE_values[t, c, a]/EAEmax_value for t in Ωt], label="EAE")
     axes2[idx].plot(Ωt, [SoCEV_values[t, c, a] for t in Ωt], label="SoCEV")
