@@ -78,7 +78,7 @@ model.setObjective(
     cIPV * PPVmax + cIT * PGDmax + cIPA * PAEmax + cIEA * EAEmax +
     365 * gp.quicksum(p[c] * Δt * cOS['1'][t - 1] * PS[t, c, a] for t in Ωt for c in Ωc for a in Ωa) +
     365 * gp.quicksum(p[c] * Δt * cOT * PGD[t, c, a] for t in Ωt for c in Ωc for a in Ωa) +
-    365 * gp.quicksum(p[c] * Δt * cCC * PD['1'][t-1] * xD[t, c, a] for t in Ωt for c in Ωc for a in Ωa),
+    365 * gp.quicksum(p[c] * Δt * cCC * PD['1'][t - 1] * xD[t, c, a] for t in Ωt for c in Ωc for a in Ωa),
     GRB.MINIMIZE
 )
 
@@ -101,7 +101,7 @@ for t in Ωt:
                 elif t == Ωa[a]['arrival'][n]:
                     model.addConstr(SoCEV[t,c,a] == Ωa[a]['SoCini'][n])
                 elif t == Ωa[a]['departure'][n]:
-                    model.addConstr(SoCEV[t,c,a] == 1)
+                    model.addConstr(SoCEV[t,c,a] == Ωa[a]['Ef'][n])
                 elif n < len(Ωa[a]['arrival']) - 1:
                     if t > Ωa[a]['departure'][n] and t < Ωa[a]['arrival'][n+1]:
                         model.addConstr(SoCEV[t,c,a] == 0)
