@@ -13,6 +13,7 @@ fPD = json.load(open('parameters/PD.json', 'r'))
 Ωc = [0, 72, 80, 88]
 Ωa = json.load(open('parameters/EV.json', 'r'))
 
+
 Δt = 0.25  # Define the time interval in hours
 
 # Create a Gurobi model
@@ -41,11 +42,12 @@ cIEA = 2000
 EAE0 = 0
 alpha = 0.95
 beta = 0.05
-
+Availiable_Charges = 2
+n_cars = 3
 
 # Define maximum charging and discharging power EV
-MaxChargePower = 50  # Adjust this value based on your requirements
-MaxDischargePower = 0  # Adjust this value based on your requirements
+MaxChargePower = 7.4  # Adjust this value based on your requirements
+MaxDischargePower = 5  # Adjust this value based on your requirements
 
 # Variables
 PPVmax = model.addVar(name="PPVmax", lb=0, ub=IPPVmax)
@@ -57,17 +59,16 @@ PS   = {(t, c, a): model.addVar(name=f"PS_{t}_{c}_{a}", lb=0)       for t in Ωt
 PGD  = {(t, c, a): model.addVar(name=f"PGD_{t}_{c}_{a}", lb=0)      for t in Ωt for c in Ωc for a in Ωa}
 xD   = {(t, c, a): model.addVar(name=f"xD_{t}_{c}_{a}", lb=0, ub=1) for t in Ωt for c in Ωc for a in Ωa}
 
-PAEc = {(t, c, a): model.addVar(name=f"PAEi_{t}_{c}_{a}", lb=0)     for t in Ωt for c in Ωc for a in Ωa}
-PAEd = {(t, c, a): model.addVar(name=f"PAEe_{t}_{c}_{a}", lb=0)     for t in Ωt for c in Ωc for a in Ωa}
+PAEc = {(t, c, a): model.addVar(name=f"PAEc_{t}_{c}_{a}", lb=0)     for t in Ωt for c in Ωc for a in Ωa}
+PAEd = {(t, c, a): model.addVar(name=f"PAEd_{t}_{c}_{a}", lb=0)     for t in Ωt for c in Ωc for a in Ωa}
 EAE  = {(t, c, a): model.addVar(name=f"EAE_{t}_{c}_{a}", lb=0)      for t in Ωt for c in Ωc for a in Ωa}
 
 γAEc = {(t, c, a): model.addVar(vtype=GRB.BINARY, name=f"AECharge{a}")    for t in Ωt for c in Ωc for a in Ωa} 
 γAEd = {(t, c, a): model.addVar(vtype=GRB.BINARY, name=f"AEDischarge{a}") for t in Ωt for c in Ωc for a in Ωa} 
 
-PEVc = {(t, c, a): model.addVar(name=f"PAEi_{t}_{c}_{a}", lb=0)     for t in Ωt for c in Ωc for a in Ωa}
-PEVd = {(t, c, a): model.addVar(name=f"PAEe_{t}_{c}_{a}", lb=0)     for t in Ωt for c in Ωc for a in Ωa}
-SoCEV  = {(t, c, a): model.addVar(name=f"EEV_{t}_{c}_{a}", lb=0)      for t in Ωt for c in Ωc for a in Ωa}
-
+PEVc = {(t, c, a): model.addVar(name=f"PEVc_{t}_{c}_{a}", lb=0)     for t in Ωt for c in Ωc for a in Ωa}
+PEVd = {(t, c, a): model.addVar(name=f"PEVd_{t}_{c}_{a}", lb=0)     for t in Ωt for c in Ωc for a in Ωa}
+SoCEV  = {(t, c, a): model.addVar(name=f"SoCEV_{t}_{c}_{a}", lb=0)      for t in Ωt for c in Ωc for a in Ωa}
 
 # Define binary decision variables for EV availability scenarios
 γEVc = {(t, c, a): model.addVar(vtype=GRB.BINARY, name=f"EVCharge{a}")    for t in Ωt for c in Ωc for a in Ωa} 
@@ -81,37 +82,41 @@ model.setObjective(
     365 * gp.quicksum(p[c] * Δt * cCC * PD['1'][t - 1] * xD[t, c, a] for t in Ωt for c in Ωc for a in Ωa),
     GRB.MINIMIZE
 )
-
 # Assuming Ωt is the list of time intervals
 for t in Ωt:
     for c in Ωc:
         for a in Ωa:
-            if t < Ωa[a]['arrival'][0]:
-                model.addConstr(SoCEV[t,c,a] == 0)
-                model.addConstr(PEVc[t,c,a] == 0)
-                model.addConstr(PEVd[t,c,a] == 0)
-            elif t > Ωa[a]['departure'][-1]:
-                model.addConstr(SoCEV[t,c,a] == 0)
-                model.addConstr(PEVc[t,c,a] == 0)
-                model.addConstr(PEVd[t,c,a] == 0)
+            if t == 1:
+                n_cars = len(Ωa[a]['arrival'])
+                max_EV_charge = sum(Ωa[a]['Emax'])
             for n in range(len(Ωa[a]['arrival'])):
-                if t > Ωa[a]['arrival'][n] and t < Ωa[a]['departure'][n]:
-                    model.addConstr(SoCEV[t,c,a] == SoCEV[t-1,c,a] + Δt * (PEVc[t,c,a] - PEVd[t,c,a])/Ωa[a]['Emax'][n])
-                    model.addConstr(SoCEV[t,c,a] <= 1)
+                model.addConstr(SoCEV[t,c,a] <= max_EV_charge)
+                model.addConstr(PEVc[t,c,a] <= MaxChargePower * γEVc[t,c,a] * min(Availiable_Charges, n_cars))
+                model.addConstr(PEVd[t,c,a] <= MaxDischargePower * γEVd[t,c,a] * min(Availiable_Charges, n_cars))
+                model.addConstr(γEVc[t,c,a] + γEVd[t,c,a] <= 1)
+                if t == 1:
+                    SoCEV[t,c,a] = sum(Ωa[a]['SoCini'])
+                    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+                    print("SoCEV", SoCEV[t,c,a])
+                if t == Ωa[a]['departure'][n]:
+                    n_cars = n_cars - 1
+                    max_EV_charge = max_EV_charge - Ωa[a]['Emax'][n]
                 elif t == Ωa[a]['arrival'][n]:
-                    model.addConstr(SoCEV[t,c,a] == Ωa[a]['SoCini'][n])
+                    n_cars = n_cars + 1
+                    max_EV_charge = max_EV_charge + Ωa[a]['Emax'][n]
                 elif t == Ωa[a]['departure'][n]:
-                    model.addConstr(SoCEV[t,c,a] == Ωa[a]['Ef'][n])
-                elif n < len(Ωa[a]['arrival']) - 1:
-                    if t > Ωa[a]['departure'][n] and t < Ωa[a]['arrival'][n+1]:
-                        model.addConstr(SoCEV[t,c,a] == 0)
-                        model.addConstr(PEVc[t,c,a] == 0)
-                        model.addConstr(PEVd[t,c,a] == 0)
-
-            model.addConstr(PEVc[t,c,a] <= MaxChargePower * γEVc[t,c,a])
-            model.addConstr(PEVd[t,c,a] <= MaxDischargePower * γEVd[t,c,a])
-            model.addConstr(γEVc[t,c,a] + γEVd[t,c,a] <= 1)
-
+                    model.addConstr(SoCEV[t,c,a] >= Ωa[a]['Ef'][n])            
+                elif t > 1 and t != Ωa[a]['arrival'][n] + 1 and t != Ωa[a]['departure'][n] + 1:
+                    model.addConstr(SoCEV[t,c,a] == SoCEV[t - 1,c,a] + Δt * (PEVc[t,c,a] - PEVd[t,c,a]))
+                elif t == Ωa[a]['arrival'][n] + 1:
+                    print(f'a: {a}')
+                    print(f'Ωa[a]: {Ωa[a]}')
+                    print(f'Ωa[a]: {Ωa[a]['SoCArrival'][n]}')
+                    model.addConstr(SoCEV[t,c,a] == SoCEV[t - 1,c,a] + Δt * (PEVc[t,c,a] - PEVd[t,c,a]) + Ωa[a]['SoCArrival'][n])
+                elif t == Ωa[a]['departure'][n] + 1:
+                    print(f'a: {a}')
+                    print(f'Ωa[a]: {Ωa[a]}')
+                    model.addConstr(SoCEV[t, c, a] == SoCEV[t - 1, c, a] + Δt * (PEVc[t, c, a] - PEVd[t, c, a]) - Ωa[a]['Ef'][n])
 
 
 # Active power balance constraint
@@ -198,13 +203,19 @@ print(PAEmax)
 print(EAEmax)
 
 
+
+
+print(type(SoCEV[t, c, a]))  # Print the type of the variable
+
+
 # Extract the values for plotting
 PS_values   = {(t, c, a): PS[t, c, a].x for t in Ωt for c in Ωc for a in Ωa}
 PGD_values  = {(t, c, a): PGD[t, c, a].x for t in Ωt for c in Ωc for a in Ωa}
 
 PEVc_values = {(t, c, a): PEVc[t, c, a].x for t in Ωt for c in Ωc for a in Ωa}
 PEVd_values = {(t, c, a): PEVd[t, c, a].x for t in Ωt for c in Ωc for a in Ωa}
-SoCEV_values  = {(t, c, a): SoCEV[t, c, a].x for t in Ωt for c in Ωc for a in Ωa}
+SoCEV_values = {(t, c, a): SoCEV[t, c, a].x for t in Ωt for c in Ωc for a in Ωa}
+
 
 
 PAEc_values = {(t, c, a): PAEc[t, c, a].x for t in Ωt for c in Ωc for a in Ωa}
