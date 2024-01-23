@@ -87,6 +87,8 @@ for t in Ωt:
     for c in Ωc:
         for a in Ωa:
             if t == 1:
+                print(f'a: {a}')
+                print(f'Ωa[a]: {Ωa[a]}')
                 n_cars = len(Ωa[a]['arrival'])
                 max_EV_charge = sum(Ωa[a]['Emax'])
             for n in range(len(Ωa[a]['arrival'])):
