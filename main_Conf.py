@@ -9,7 +9,7 @@ fp = json.load(open('parameters/scenarios15m.json', 'r'))
 par = json.load(open('parameters/parameters.json', 'r'))
 contingency = json.load(open('parameters/contingency.json', 'r'))
 
-Ωa = json.load(open('parameters/EV.json', 'r'))
+Ωa = json.load(open('parameters/EVsmall.json', 'r'))
 Ωt = list(range(1, 97))
 Ωc = contingency['timestamp']
 Ωs = fp.keys()
