@@ -65,31 +65,32 @@ model.setObjective(
 for t in Ωt:
     for c in Ωc:
         for a in Ωa:
-            if t < Ωa[a]['arrival'][0]:
-                model.addConstr(SoCEV[t, c, a] == 0, name=f"EV_SoC_before_{t}_{c}_{a}")
-                model.addConstr(PEVc[t, c, a] == 0, name=f"EV_Charge_before_{t}_{c}_{a}")
-                model.addConstr(PEVd[t, c, a] == 0, name=f"EV_Discharge_before_{t}_{c}_{a}")
-            elif t > Ωa[a]['departure'][-1]:
-                model.addConstr(SoCEV[t, c, a] == 0, name=f"EV_SoC_after_{t}_{c}_{a}")
-                model.addConstr(PEVc[t, c, a] == 0, name=f"EV_Charge_after_{t}_{c}_{a}")
-                model.addConstr(PEVd[t, c, a] == 0, name=f"EV_Discharge_after_{t}_{c}_{a}")
-            for n in range(len(Ωa[a]['arrival'])):
-                if t == Ωa[a]['departure'][n]:
-                    model.addConstr(SoCEV[t, c, a] == 1, name=f"EV_SoC_end_{t}_{c}_{a}")
-                if t > Ωa[a]['arrival'][n] and t <= Ωa[a]['departure'][n]:
-                    model.addConstr(SoCEV[t, c, a] == SoCEV[t-1,c,a] + Δt * (PEVc[t,c,a] - PEVd[t,c,a])/Ωa[a]['Emax'][n], name=f"EV_SoC_{t}_{c}_{a}")
-                    model.addConstr(SoCEV[t, c, a] <= 1, name=f"EV_SoC_max_{t}_{c}_{a}")
-                elif t == Ωa[a]['arrival'][n]:
-                    model.addConstr(SoCEV[t, c, a] == Ωa[a]['SoCini'][n], name=f"EV_SoC_ini_{t}_{c}_{a}")
-                elif n < len(Ωa[a]['arrival']) - 1:
-                    if t > Ωa[a]['departure'][n] and t < Ωa[a]['arrival'][n+1]:
-                        model.addConstr(SoCEV[t, c, a] == 0, name=f"EV_SoC_between_{t}_{c}_{a}")
-                        model.addConstr(PEVc[t, c, a] == 0, name=f"EV_Charge_between_{t}_{c}_{a}")
-                        model.addConstr(PEVd[t, c, a] == 0, name=f"EV_Discharge_between_{t}_{c}_{a}")
+            if a == 1:
+                if t < Ωa[a]['arrival'][0]:
+                    model.addConstr(SoCEV[t, c, a] == 0, name=f"EV_SoC_before_{t}_{c}_{a}")
+                    model.addConstr(PEVc[t, c, a] == 0, name=f"EV_Charge_before_{t}_{c}_{a}")
+                    model.addConstr(PEVd[t, c, a] == 0, name=f"EV_Discharge_before_{t}_{c}_{a}")
+                elif t > Ωa[a]['departure'][-1]:
+                    model.addConstr(SoCEV[t, c, a] == 0, name=f"EV_SoC_after_{t}_{c}_{a}")
+                    model.addConstr(PEVc[t, c, a] == 0, name=f"EV_Charge_after_{t}_{c}_{a}")
+                    model.addConstr(PEVd[t, c, a] == 0, name=f"EV_Discharge_after_{t}_{c}_{a}")
+                for n in range(len(Ωa[a]['arrival'])):
+                    if t == Ωa[a]['departure'][n]:
+                        model.addConstr(SoCEV[t, c, a] == 1, name=f"EV_SoC_end_{t}_{c}_{a}")
+                    if t > Ωa[a]['arrival'][n] and t <= Ωa[a]['departure'][n]:
+                        model.addConstr(SoCEV[t, c, a] == SoCEV[t-1,c,a] + Δt * (PEVc[t,c,a] - PEVd[t,c,a])/Ωa[a]['Emax'][n], name=f"EV_SoC_{t}_{c}_{a}")
+                        model.addConstr(SoCEV[t, c, a] <= 1, name=f"EV_SoC_max_{t}_{c}_{a}")
+                    elif t == Ωa[a]['arrival'][n]:
+                        model.addConstr(SoCEV[t, c, a] == Ωa[a]['SoCini'][n], name=f"EV_SoC_ini_{t}_{c}_{a}")
+                    elif n < len(Ωa[a]['arrival']) - 1:
+                        if t > Ωa[a]['departure'][n] and t < Ωa[a]['arrival'][n+1]:
+                            model.addConstr(SoCEV[t, c, a] == 0, name=f"EV_SoC_between_{t}_{c}_{a}")
+                            model.addConstr(PEVc[t, c, a] == 0, name=f"EV_Charge_between_{t}_{c}_{a}")
+                            model.addConstr(PEVd[t, c, a] == 0, name=f"EV_Discharge_between_{t}_{c}_{a}")
 
-            model.addConstr(PEVc[t,c,a] <= par['EVPmaxc'] * γEVc[t,c,a], name=f"EV_ChargeMax_{t}_{c}_{a}")
-            model.addConstr(PEVd[t,c,a] <= par['EVPmaxd'] * γEVd[t,c,a], name=f"EV_DischargeMax_{t}_{c}_{a}")
-            model.addConstr(γEVc[t,c,a] + γEVd[t,c,a] <= 1, name=f"EV_Charge_Discharge_condition_{t}_{c}_{a}")
+                model.addConstr(PEVc[t,c,a] <= par['EVPmaxc'] * γEVc[t,c,a], name=f"EV_ChargeMax_{t}_{c}_{a}")
+                model.addConstr(PEVd[t,c,a] <= par['EVPmaxd'] * γEVd[t,c,a], name=f"EV_DischargeMax_{t}_{c}_{a}")
+                model.addConstr(γEVc[t,c,a] + γEVd[t,c,a] <= 1, name=f"EV_Charge_Discharge_condition_{t}_{c}_{a}")
 
 
 # Active power balance constraint
@@ -213,26 +214,33 @@ from itertools import product
 Ωc_a_pairs1 = list(product(Ωc, Ωa))
 
 # Create a 2x2 grid of subplots
-fig, axes1 = plt.subplots(2, 2, figsize=(15, 10))
+
 fig, axes2 = plt.subplots(2, 2, figsize=(15, 10))
-# Flatten the 2D array of subplots for easy indexing
+# Create a 2x2 grid of subplots dynamically based on the number of combinations
+num_subplots = len(Ωc_a_pairs)
+num_cols = 2
+num_rows = -(-num_subplots // num_cols)  # Ceiling division to determine the number of rows
+
+# Create subplots
+fig, axes1 = plt.subplots(num_rows, num_cols, figsize=(15, 10))
 axes1 = axes1.flatten()
 axes2 = axes2.flatten()
 
 # Loop over combinations of c and a
-for idx, (c, a) in enumerate(Ωc_a_pairs):  # Assuming Ωc_a_pairs is a list of pairs (c, a)
+for idx, (c, a) in enumerate(Ωc_a_pairs):  # Using enumerate to loop over both index and value
     # Power-related plots
     axes1[idx].plot(Ωt, [PS_values[t, s, c, a] for t in Ωt], label="PS")
     axes1[idx].plot(Ωt, [PGD_values[t, c, a] for t in Ωt], label="PGD")
     axes1[idx].plot(Ωt, [fp[s]['load'][t-1]*par['MaxL'] for t in Ωt], label="Demand")
     axes1[idx].plot(Ωt, [PAEc_values[t, c, a] for t in Ωt], label="PAEc")
     axes1[idx].plot(Ωt, [-1 * PAEd_values[t, c, a] for t in Ωt], label="PAEd")
-    axes1[idx].plot(Ωt, [PAEc_values[t, c, a] for t in Ωt], label="PEVc")
-    axes1[idx].plot(Ωt, [-1 * PAEd_values[t, c, a] for t in Ωt], label="PEVd")
+    axes1[idx].plot(Ωt, [PEVc_values[t, c, a] for t in Ωt], label="PEVc")
+    axes1[idx].plot(Ωt, [-1 * PEVd_values[t, c, a] for t in Ωt], label="PEVd")
     axes1[idx].legend()
     axes1[idx].set_xlabel("Timestamp")
     axes1[idx].set_ylabel("Power [kW]")
     axes1[idx].set_title(f"Power Values - c{c}, a{a}")
+
 
 for idx, (c, a) in enumerate(Ωc_a_pairs1):  # Assuming Ωc_a_pairs is a list of pairs (c, a)
     axes2[idx].plot(Ωt, [EAE_values[t, c, a]/EAEmax_value for t in Ωt], label="EAE")
