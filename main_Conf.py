@@ -178,7 +178,6 @@ print(PAEmax)
 print(EAEmax)
 
 
-
 # Extract the values for plotting
 PS_values   = {(t, s, c, a): PS[t, s, c, a].x for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
 PGD_values  = {(t, c, a): PGD[t, c, a].x for t in Ωt for c in Ωc for a in Ωa}
@@ -198,61 +197,30 @@ PGDmax_value = PGDmax.x
 PAEmax_value = PAEmax.x
 EAEmax_value = EAEmax.x
 
+for s in Ωs:
+    for c in Ωc:
+        for a in Ωa:
+            plt.figure()
+            plt.plot(Ωt, [PS_values[t, s, c, a] for t in Ωt], label="EDS")
+            plt.plot(Ωt, [PGD_values[t, c, a] for t in Ωt], label="Thermal Generator")
+            plt.plot(Ωt, [fp[s]['load'][t-1]*par['MaxL'] for t in Ωt], label="Demand")
+            plt.plot(Ωt, [-1*fp[s]['pv'][t-1] * PPVmax_value * (1-xD_values[t,s,c,a]) for t in Ωt], label="PV")
+            plt.plot(Ωt, [PAEc_values[t, c, a] - PAEd_values[t, c, a] for t in Ωt], label="BESS")
+            plt.plot(Ωt, [PEVc_values[t, c, a] - PEVd_values[t, c, a] for t in Ωt], label="EV")
+            plt.legend()
+            plt.xlabel("Timestamp")
+            plt.ylabel("Power [kW]")
+            plt.savefig(f"Results/operation_s{s}_c{c}_a{a}.png")
+            plt.close()
 
+for c in Ωc:
+    for a in Ωa:
+        plt.figure()
+        plt.plot(Ωt, [EAE_values[t, c, a]/EAEmax_value for t in Ωt], label="EAE")
+        plt.plot(Ωt, [SoCEV_values[t, c, a] for t in Ωt], label="SoCEV")
+        plt.legend()
+        plt.xlabel("Timestamp")
+        plt.ylabel("SoC")
+        plt.savefig(f"Results/storage_c{c}_a{a}.png")
+        plt.close()
 
-import matplotlib.pyplot as plt
-
-
-num_c = len(Ωc)
-num_a = len(Ωa)
-
-from itertools import product
-
-
-Ωc_a_pairs = list(product(Ωc, Ωa))
-
-Ωc_a_pairs1 = list(product(Ωc, Ωa))
-
-# Create a 2x2 grid of subplots
-
-fig, axes2 = plt.subplots(2, 2, figsize=(15, 10))
-# Create a 2x2 grid of subplots dynamically based on the number of combinations
-num_subplots = len(Ωc_a_pairs)
-num_cols = 2
-num_rows = -(-num_subplots // num_cols)  # Ceiling division to determine the number of rows
-
-# Create subplots
-fig, axes1 = plt.subplots(num_rows, num_cols, figsize=(15, 10))
-axes1 = axes1.flatten()
-axes2 = axes2.flatten()
-
-# Loop over combinations of c and a
-for idx, (c, a) in enumerate(Ωc_a_pairs):  # Using enumerate to loop over both index and value
-    # Power-related plots
-    axes1[idx].plot(Ωt, [PS_values[t, s, c, a] for t in Ωt], label="PS")
-    axes1[idx].plot(Ωt, [PGD_values[t, c, a] for t in Ωt], label="PGD")
-    axes1[idx].plot(Ωt, [fp[s]['load'][t-1]*par['MaxL'] for t in Ωt], label="Demand")
-    axes1[idx].plot(Ωt, [PAEc_values[t, c, a] for t in Ωt], label="PAEc")
-    axes1[idx].plot(Ωt, [-1 * PAEd_values[t, c, a] for t in Ωt], label="PAEd")
-    axes1[idx].plot(Ωt, [PEVc_values[t, c, a] for t in Ωt], label="PEVc")
-    axes1[idx].plot(Ωt, [-1 * PEVd_values[t, c, a] for t in Ωt], label="PEVd")
-    axes1[idx].legend()
-    axes1[idx].set_xlabel("Timestamp")
-    axes1[idx].set_ylabel("Power [kW]")
-    axes1[idx].set_title(f"Power Values - c{c}, a{a}")
-
-
-for idx, (c, a) in enumerate(Ωc_a_pairs1):  # Assuming Ωc_a_pairs is a list of pairs (c, a)
-    axes2[idx].plot(Ωt, [EAE_values[t, c, a]/EAEmax_value for t in Ωt], label="EAE")
-    axes2[idx].plot(Ωt, [SoCEV_values[t, c, a] for t in Ωt], label="SoCEV")
-    axes2[idx].legend()
-    axes2[idx].set_xlabel("Timestamp")
-    axes2[idx].set_ylabel("Power [kW]")
-    axes2[idx].set_title(f"EV Power - c{c}, a{a}")
-
-
-# Adjust layout to prevent overlap
-plt.tight_layout()
-
-# Show the plot
-plt.show()
