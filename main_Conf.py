@@ -65,32 +65,32 @@ model.setObjective(
 for t in Ωt:
     for c in Ωc:
         for a in Ωa:
-            if a == 1:
-                if t < Ωa[a]['arrival'][0]:
-                    model.addConstr(SoCEV[t, c, a] == 0, name=f"EV_SoC_before_{t}_{c}_{a}")
-                    model.addConstr(PEVc[t, c, a] == 0, name=f"EV_Charge_before_{t}_{c}_{a}")
-                    model.addConstr(PEVd[t, c, a] == 0, name=f"EV_Discharge_before_{t}_{c}_{a}")
-                elif t > Ωa[a]['departure'][-1]:
-                    model.addConstr(SoCEV[t, c, a] == 0, name=f"EV_SoC_after_{t}_{c}_{a}")
-                    model.addConstr(PEVc[t, c, a] == 0, name=f"EV_Charge_after_{t}_{c}_{a}")
-                    model.addConstr(PEVd[t, c, a] == 0, name=f"EV_Discharge_after_{t}_{c}_{a}")
-                for n in range(len(Ωa[a]['arrival'])):
-                    if t == Ωa[a]['departure'][n]:
-                        model.addConstr(SoCEV[t, c, a] == 1, name=f"EV_SoC_end_{t}_{c}_{a}")
-                    if t > Ωa[a]['arrival'][n] and t <= Ωa[a]['departure'][n]:
-                        model.addConstr(SoCEV[t, c, a] == SoCEV[t-1,c,a] + Δt * (PEVc[t,c,a] - PEVd[t,c,a])/Ωa[a]['Emax'][n], name=f"EV_SoC_{t}_{c}_{a}")
-                        model.addConstr(SoCEV[t, c, a] <= 1, name=f"EV_SoC_max_{t}_{c}_{a}")
-                    elif t == Ωa[a]['arrival'][n]:
-                        model.addConstr(SoCEV[t, c, a] == Ωa[a]['SoCini'][n], name=f"EV_SoC_ini_{t}_{c}_{a}")
-                    elif n < len(Ωa[a]['arrival']) - 1:
-                        if t > Ωa[a]['departure'][n] and t < Ωa[a]['arrival'][n+1]:
-                            model.addConstr(SoCEV[t, c, a] == 0, name=f"EV_SoC_between_{t}_{c}_{a}")
-                            model.addConstr(PEVc[t, c, a] == 0, name=f"EV_Charge_between_{t}_{c}_{a}")
-                            model.addConstr(PEVd[t, c, a] == 0, name=f"EV_Discharge_between_{t}_{c}_{a}")
+            if t < Ωa[a]['arrival'][0]:
+                model.addConstr(SoCEV[t, c, a] == 0, name=f"EV_SoC_before_{t}_{c}_{a}")
+                model.addConstr(PEVc[t, c, a] == 0, name=f"EV_Charge_before_{t}_{c}_{a}")
+                model.addConstr(PEVd[t, c, a] == 0, name=f"EV_Discharge_before_{t}_{c}_{a}")
+            elif t > Ωa[a]['departure'][-1]:
+                model.addConstr(SoCEV[t, c, a] == 0, name=f"EV_SoC_after_{t}_{c}_{a}")
+                model.addConstr(PEVc[t, c, a] == 0, name=f"EV_Charge_after_{t}_{c}_{a}")
+                model.addConstr(PEVd[t, c, a] == 0, name=f"EV_Discharge_after_{t}_{c}_{a}")
+            for n in range(len(Ωa[a]['arrival'])):
+                if t == Ωa[a]['departure'][n]:
+                    model.addConstr(SoCEV[t, c, a] == 1, name=f"EV_SoC_end_{t}_{c}_{a}")
+                if t > Ωa[a]['arrival'][n] and t <= Ωa[a]['departure'][n]:
+                    model.addConstr(SoCEV[t, c, a] == SoCEV[t-1,c,a] + Δt * (PEVc[t,c,a] - PEVd[t,c,a])/Ωa[a]['Emax'][n], name=f"EV_SoC_{t}_{c}_{a}")
+                    model.addConstr(SoCEV[t, c, a] <= 1, name=f"EV_SoC_max_{t}_{c}_{a}")
+                elif t == Ωa[a]['arrival'][n]:
+                    model.addConstr(SoCEV[t, c, a] == Ωa[a]['SoCini'][n], name=f"EV_SoC_ini_{t}_{c}_{a}")
+                if n < len(Ωa[a]['arrival']) - 1:
+                    if t > Ωa[a]['departure'][n] and t < Ωa[a]['arrival'][n+1]:
+                        print(t)
+                        model.addConstr(SoCEV[t, c, a] == 0, name=f"EV_SoC_between_{t}_{c}_{a}")
+                        model.addConstr(PEVc[t, c, a] == 0, name=f"EV_Charge_between_{t}_{c}_{a}")
+                        model.addConstr(PEVd[t, c, a] == 0, name=f"EV_Discharge_between_{t}_{c}_{a}")
 
-                model.addConstr(PEVc[t,c,a] <= par['EVPmaxc'] * γEVc[t,c,a], name=f"EV_ChargeMax_{t}_{c}_{a}")
-                model.addConstr(PEVd[t,c,a] <= par['EVPmaxd'] * γEVd[t,c,a], name=f"EV_DischargeMax_{t}_{c}_{a}")
-                model.addConstr(γEVc[t,c,a] + γEVd[t,c,a] <= 1, name=f"EV_Charge_Discharge_condition_{t}_{c}_{a}")
+            model.addConstr(PEVc[t,c,a] <= par['EVPmaxc'] * γEVc[t,c,a], name=f"EV_ChargeMax_{t}_{c}_{a}")
+            model.addConstr(PEVd[t,c,a] <= par['EVPmaxd'] * γEVd[t,c,a], name=f"EV_DischargeMax_{t}_{c}_{a}")
+            model.addConstr(γEVc[t,c,a] + γEVd[t,c,a] <= 1, name=f"EV_Charge_Discharge_condition_{t}_{c}_{a}")
 
 
 # Active power balance constraint
