@@ -28,7 +28,7 @@ def generate_scenario(num_scenarios):
 
     return scenarios
 
-num_scenarios = 1000  # You can change this number to generate more scenarios
+num_scenarios = 10  # You can change this number to generate more scenarios
 result = generate_scenario(num_scenarios)
 
 # Export to JSON file
