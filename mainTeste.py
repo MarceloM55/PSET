@@ -11,7 +11,7 @@ fPD = json.load(open('parameters/PD.json', 'r'))
 Ωs = ["1"]
 Ωt = list(range(1, 97))
 Ωc = [0, 72, 80, 88]
-Ωa = json.load(open('parameters/EV.json', 'r'))
+Ωa = json.load(open('parameters/EV_Teste.json', 'r'))
 
 
 Δt = 0.25  # Define the time interval in hours
@@ -82,45 +82,40 @@ model.setObjective(
     365 * gp.quicksum(p[c] * Δt * cCC * PD['1'][t - 1] * xD[t, c, a] for t in Ωt for c in Ωc for a in Ωa),
     GRB.MINIMIZE
 )
-# Assuming Ωt is the list of time intervals
+
+ddd = len(Ωt)
+ccc = list(range(96))
 for t in Ωt:
-    for c in Ωc:
+    ccc[t-1] = 0
+# Assuming Ωt is the list of time intervals
+for c in Ωc:
+    for t in Ωt:
         for a in Ωa:
             if t == 1:
-                print(f'a: {a}')
-                print(f'Ωa[a]: {Ωa[a]}')
                 n_cars = len(Ωa[a]['arrival'])
                 max_EV_charge = sum(Ωa[a]['Emax'])
+                model.addConstr(SoCEV[t,c,a] == 19)
             for n in range(len(Ωa[a]['arrival'])):
                 model.addConstr(SoCEV[t,c,a] <= max_EV_charge)
                 model.addConstr(PEVc[t,c,a] <= MaxChargePower * γEVc[t,c,a] * min(Availiable_Charges, n_cars))
                 model.addConstr(PEVd[t,c,a] <= MaxDischargePower * γEVd[t,c,a] * min(Availiable_Charges, n_cars))
                 model.addConstr(γEVc[t,c,a] + γEVd[t,c,a] <= 1)
-                if t == 1:
-                    SoCEV[t,c,a] = sum(Ωa[a]['SoCini'])
-                    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-                    print("SoCEV", SoCEV[t,c,a])
                 if t == Ωa[a]['departure'][n]:
-                    n_cars = n_cars - 1
-                    max_EV_charge = max_EV_charge - Ωa[a]['Emax'][n]
+                    n_cars -= 1
+                    max_EV_charge -= Ωa[a]['Emax'][n]
+                    if ccc[t-1] == 0:
+                        ccc[t-1] = 1
+                    model.addConstr(SoCEV[t,c,a] + Ωa[a]['Ef'][n] * Ωa[a]['Emax'][n] >= (Ωa[a]['Ef'][n] * Ωa[a]['Emax'][n]))
+                    model.addConstr(SoCEV[t, c, a] == SoCEV[t - 1, c, a] + Δt * (PEVc[t, c, a] - PEVd[t, c, a]) - Ωa[a]['Ef'][n] * Ωa[a]['Emax'][n])  
                 elif t == Ωa[a]['arrival'][n]:
-                    n_cars = n_cars + 1
-                    max_EV_charge = max_EV_charge + Ωa[a]['Emax'][n]
-                elif t == Ωa[a]['departure'][n]:
-                    model.addConstr(SoCEV[t,c,a] >= Ωa[a]['Ef'][n])            
-                elif t > 1 and t != Ωa[a]['arrival'][n] + 1 and t != Ωa[a]['departure'][n] + 1:
+                    n_cars += 1
+                    max_EV_charge += Ωa[a]['Emax'][n]
+                    if ccc[t-1] == 0:
+                        ccc[t-1] = 1  
+                    model.addConstr(SoCEV[t,c,a] == SoCEV[t - 1,c,a] + Δt * (PEVc[t,c,a] - PEVd[t,c,a]) + Ωa[a]['SoCArrival'][n] * Ωa[a]['Emax'][n])                                      
+                elif t > 1:
                     model.addConstr(SoCEV[t,c,a] == SoCEV[t - 1,c,a] + Δt * (PEVc[t,c,a] - PEVd[t,c,a]))
-                elif t == Ωa[a]['arrival'][n] + 1:
-                    print(f'a: {a}')
-                    print(f'Ωa[a]: {Ωa[a]}')
-                    print(f'Ωa[a]: {Ωa[a]['SoCArrival'][n]}')
-                    model.addConstr(SoCEV[t,c,a] == SoCEV[t - 1,c,a] + Δt * (PEVc[t,c,a] - PEVd[t,c,a]) + Ωa[a]['SoCArrival'][n])
-                elif t == Ωa[a]['departure'][n] + 1:
-                    print(f'a: {a}')
-                    print(f'Ωa[a]: {Ωa[a]}')
-                    model.addConstr(SoCEV[t, c, a] == SoCEV[t - 1, c, a] + Δt * (PEVc[t, c, a] - PEVd[t, c, a]) - Ωa[a]['Ef'][n])
-
-
+print(ccc)
 # Active power balance constraint
 for t in Ωt:
     for c in Ωc:
@@ -203,9 +198,6 @@ print(PPVmax)
 print(PGDmax)
 print(PAEmax)
 print(EAEmax)
-
-
-
 
 print(type(SoCEV[t, c, a]))  # Print the type of the variable
 
