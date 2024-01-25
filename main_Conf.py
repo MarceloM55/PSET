@@ -68,20 +68,16 @@ model.setObjective(
 
 for t in Ωt:
     for c in [72, 80, 88]:
-        model.addGenConstrIndicator(z[t, c], False, t - c, GRB.LESS_EQUAL, 0)  # z[t, c] == 1 when t - c <= 0
-        model.addGenConstrIndicator(z[t, c], True, t - c, GRB.GREATER_EQUAL, 1)   # z[t, c] == 0 when t - c > 0
+        model.addGenConstrIndicator(z[t, c], False, t - c, GRB.LESS_EQUAL, 0)  # z[t, c] == 0 when t - c <= 0
+        model.addGenConstrIndicator(z[t, c], True, t - c, GRB.GREATER_EQUAL, 1)   # z[t, c] == 1 when t - c > 0
         print ("HHH", z[t,c], t, c)
 for t in Ωt:
     for c in [72, 80, 88]:
         for a in Ωa:
             model.addConstr(SoCEV[t, c, a] >= SoCEV[t, 0, a] * (1 - z[t, c]))
-            model.addConstr(PEVc[t, c, a] >= PEVc[t, 0, a] * (1 - z[t, c]))
-            model.addConstr(PEVd[t, c, a] >= PEVd[t, 0, a] * (1 - z[t, c]))
             model.addConstr(γEVc[t, c, a] >= γEVc[t, 0, a] * (1 - z[t, c]))
             model.addConstr(γEVd[t, c, a] >= γEVd[t, 0, a] * (1 - z[t, c]))
             model.addConstr(PGD[t, c, a] >= PGD[t, 0, a] * (1 - z[t, c]))
-            model.addConstr(PAEd[t, c, a] >= PAEd[t, 0, a] * (1 - z[t, c]))
-            model.addConstr(PAEc[t, c, a] >= PAEc[t, 0, a] * (1 - z[t, c]))
             model.addConstr(EAE[t, c, a] >= EAE[t, 0, a] * (1 - z[t, c]))
             model.addConstr(γAEc[t, c, a] >= γAEc[t, 0, a] * (1 - z[t, c]))
             model.addConstr(γAEd[t, c, a] >= γAEd[t, 0, a] * (1 - z[t, c]))
