@@ -15,6 +15,8 @@ contingency = json.load(open('parameters/contingency.json', 'r'))
 Ωs = fp.keys()
 Δt = 0.25  # Define the time interval in hours
 
+M = -100000000
+
 πc = {contingency['timestamp'][i]: contingency['probability'][i]  for i in range(0,len(Ωc))}  # Define the probability of each contingency
 πs = {s: fp[s]['prob'] for s in Ωs}  # Define the probability of each scenario
 
@@ -51,7 +53,10 @@ SoCEV  = {(t, c, a): model.addVar(name=f"EEV_{t}_{c}_{a}", lb=0)            for 
 # Define binary decision variables for EV availability scenarios
 γEVc = {(t, c, a): model.addVar(vtype=GRB.BINARY, name=f"EVCharge{a}")    for t in Ωt for c in Ωc for a in Ωa} 
 γEVd = {(t, c, a): model.addVar(vtype=GRB.BINARY, name=f"EVDischarge{a}") for t in Ωt for c in Ωc for a in Ωa} 
-
+z = {}
+for t in Ωt:
+    for c in Ωc:
+        z[t, c] = model.addVar(vtype=GRB.BINARY, name=f"EVDischarge_{t}_{c}")
 # Objective function
 model.setObjective(
     par['cIPV'] * PPVmax + par['cIT'] * PGDmax + par['cIPA'] * PAEmax + par['cIEA'] * EAEmax +
@@ -61,6 +66,32 @@ model.setObjective(
     GRB.MINIMIZE
 )
 
+for t in Ωt:
+    for c in [72, 80, 88]:
+        model.addGenConstrIndicator(z[t, c], False, t - c, GRB.LESS_EQUAL, 0)  # z[t, c] == 1 when t - c <= 0
+        model.addGenConstrIndicator(z[t, c], True, t - c, GRB.GREATER_EQUAL, 1)   # z[t, c] == 0 when t - c > 0
+        print ("HHH", z[t,c], t, c)
+for t in Ωt:
+    for c in [72, 80, 88]:
+        for a in Ωa:
+            model.addConstr(SoCEV[t, c, a] >= SoCEV[t, 0, a] * (1 - z[t, c]))
+            model.addConstr(PEVc[t, c, a] >= PEVc[t, 0, a] * (1 - z[t, c]))
+            model.addConstr(PEVd[t, c, a] >= PEVd[t, 0, a] * (1 - z[t, c]))
+            model.addConstr(γEVc[t, c, a] >= γEVc[t, 0, a] * (1 - z[t, c]))
+            model.addConstr(γEVd[t, c, a] >= γEVd[t, 0, a] * (1 - z[t, c]))
+            model.addConstr(PGD[t, c, a] >= PGD[t, 0, a] * (1 - z[t, c]))
+            model.addConstr(PAEd[t, c, a] >= PAEd[t, 0, a] * (1 - z[t, c]))
+            model.addConstr(PAEc[t, c, a] >= PAEc[t, 0, a] * (1 - z[t, c]))
+            model.addConstr(EAE[t, c, a] >= EAE[t, 0, a] * (1 - z[t, c]))
+            model.addConstr(γAEc[t, c, a] >= γAEc[t, 0, a] * (1 - z[t, c]))
+            model.addConstr(γAEd[t, c, a] >= γAEd[t, 0, a] * (1 - z[t, c]))
+
+for t in Ωt:
+    for s in Ωs:
+        for c in [72, 80, 88]:
+            for a in Ωa:
+                model.addConstr(PS[t, s, c, a] >= PS[t, s, 0, a] * (1 - z[t, c]))
+                model.addConstr(PSp[t, s, c, a] >= PSp[t, s, 0, a] * (1 - z[t, c]))
 # Assuming Ωt is the list of time intervals
 for t in Ωt:
     for c in Ωc:
@@ -201,7 +232,7 @@ for s in Ωs:
     for c in Ωc:
         for a in Ωa:
             plt.figure()
-            plt.plot(Ωt, [PS_values[t, s, c, a] for t in Ωt], label="EDS")
+            plt.plot(Ωt, [PS_values[t, s, c, a] for t in Ωt], label="PS")
             plt.plot(Ωt, [PGD_values[t, c, a] for t in Ωt], label="Thermal Generator")
             plt.plot(Ωt, [fp[s]['load'][t-1]*par['MaxL'] for t in Ωt], label="Demand")
             plt.plot(Ωt, [-1*fp[s]['pv'][t-1] * PPVmax_value * (1-xD_values[t,s,c,a]) for t in Ωt], label="PV")
