@@ -11,8 +11,9 @@ fPD = json.load(open('parameters/PD.json', 'r'))
 Ωs = ["1"]
 Ωt = list(range(1, 97))
 Ωc = [0, 72, 80, 88]
-Ωa = json.load(open('parameters/EV_Teste.json', 'r'))
+Ωa = json.load(open('parameters/EVsmall.json', 'r'))
 
+par = json.load(open('parameters/parameters.json', 'r'))
 
 Δt = 0.25  # Define the time interval in hours
 
@@ -74,6 +75,26 @@ SoCEV  = {(t, c, a): model.addVar(name=f"SoCEV_{t}_{c}_{a}", lb=0)      for t in
 γEVc = {(t, c, a): model.addVar(vtype=GRB.BINARY, name=f"EVCharge{a}")    for t in Ωt for c in Ωc for a in Ωa} 
 γEVd = {(t, c, a): model.addVar(vtype=GRB.BINARY, name=f"EVDischarge{a}") for t in Ωt for c in Ωc for a in Ωa} 
 
+z1a = {}
+
+z2a = {}
+
+z3a = {}
+for t in Ωt:
+    for a in Ωa:
+        z1a[t, a] = model.addVar(vtype=GRB.BINARY, name=f"EVDischarge_{t}_{c}")
+        z2a[t, a] = model.addVar(vtype=GRB.BINARY, name=f"EVDischarge_{t}_{c}")
+        z3a[t, a] = model.addVar(vtype=GRB.BINARY, name=f"EVDischarge_{t}_{c}")
+z1d = {}
+
+z2d = {}
+
+z3d = {}
+for t in Ωt:
+    for a in Ωa:
+        z1d[t, a] = model.addVar(vtype=GRB.BINARY, name=f"EVDischarge_{t}_{c}")
+        z2d[t, a] = model.addVar(vtype=GRB.BINARY, name=f"EVDischarge_{t}_{c}")
+        z3d[t, a] = model.addVar(vtype=GRB.BINARY, name=f"EVDischarge_{t}_{c}")
 # Objective function
 model.setObjective(
     cIPV * PPVmax + cIT * PGDmax + cIPA * PAEmax + cIEA * EAEmax +
@@ -83,39 +104,45 @@ model.setObjective(
     GRB.MINIMIZE
 )
 
-ddd = len(Ωt)
-ccc = list(range(96))
 for t in Ωt:
-    ccc[t-1] = 0
-# Assuming Ωt is the list of time intervals
-for c in Ωc:
-    for t in Ωt:
+    for c in Ωc:
         for a in Ωa:
-            if t == 1:
-                n_cars = len(Ωa[a]['arrival'])
-                max_EV_charge = sum(Ωa[a]['Emax'])
-                model.addConstr(SoCEV[t,c,a] == 19)
+            model.addGenConstrIndicator(z1a[t, a], False, t - Ωa[a]['arrival'][0], GRB.LESS_EQUAL, 0)  # z[t, a] == 0 when t - c <= 0
+            model.addGenConstrIndicator(z1a[t, a], True, t - Ωa[a]['arrival'][0], GRB.GREATER_EQUAL, 1)   # z[t, a] == 1 when t - c > 0
+            model.addGenConstrIndicator(z2a[t, a], False, t - Ωa[a]['arrival'][1], GRB.LESS_EQUAL, 0)  # z[t, a] == 0 when t Ωa[a]['arrival'][0] <= 0
+            model.addGenConstrIndicator(z2a[t, a], True, t - Ωa[a]['arrival'][1], GRB.GREATER_EQUAL, 1)   # z[t, a] == 1 when t Ωa[a]['arrival'][0] > 0
+            model.addGenConstrIndicator(z3a[t, a], False, t - Ωa[a]['arrival'][2], GRB.LESS_EQUAL, 0)  # z[t, a] == 0 when t Ωa[a]['arrival'][0] <= 0
+            model.addGenConstrIndicator(z3a[t, a], True, t - Ωa[a]['arrival'][2], GRB.GREATER_EQUAL, 1)   # z[t, a] == 1 when t Ωa[a]['arrival'][0] > 0
+            model.addGenConstrIndicator(z1d[t, a], False, t - Ωa[a]['departure'][0], GRB.LESS_EQUAL, 0)  # z[t, a] == 0 when t Ωa[a]['departure'][0] <= 0
+            model.addGenConstrIndicator(z1d[t, a], True, t - Ωa[a]['departure'][0], GRB.GREATER_EQUAL, 1)   # z[t, a] == 1 when t Ωa[a]['departure'][0] > 0
+            model.addGenConstrIndicator(z2d[t, a], False, t - Ωa[a]['departure'][1], GRB.LESS_EQUAL, 0)  # z[t, a] == 0 when t Ωa[a]['departure'][0] <= 0
+            model.addGenConstrIndicator(z2d[t, a], True, t - Ωa[a]['departure'][1], GRB.GREATER_EQUAL, 1)   # z[t, a] == 1 when t Ωa[a]['departure'][0] > 0
+            model.addGenConstrIndicator(z3d[t, a], False, t - Ωa[a]['departure'][2], GRB.LESS_EQUAL, 0)  # z[t, a] == 0 when t - c <= 0
+            model.addGenConstrIndicator(z3d[t, a], True, t - Ωa[a]['departure'][2], GRB.GREATER_EQUAL, 1)   # z[t, a] == 1 when t - c > 0
+
+# Assuming Ωt is the list of time intervals
+for t in Ωt:
+    for c in Ωc:
+        for a in Ωa:
             for n in range(len(Ωa[a]['arrival'])):
-                model.addConstr(SoCEV[t,c,a] <= max_EV_charge)
-                model.addConstr(PEVc[t,c,a] <= MaxChargePower * γEVc[t,c,a] * min(Availiable_Charges, n_cars))
-                model.addConstr(PEVd[t,c,a] <= MaxDischargePower * γEVd[t,c,a] * min(Availiable_Charges, n_cars))
-                model.addConstr(γEVc[t,c,a] + γEVd[t,c,a] <= 1)
                 if t == Ωa[a]['departure'][n]:
-                    n_cars -= 1
-                    max_EV_charge -= Ωa[a]['Emax'][n]
-                    if ccc[t-1] == 0:
-                        ccc[t-1] = 1
-                    model.addConstr(SoCEV[t,c,a] + Ωa[a]['Ef'][n] * Ωa[a]['Emax'][n] >= (Ωa[a]['Ef'][n] * Ωa[a]['Emax'][n]))
-                    model.addConstr(SoCEV[t, c, a] == SoCEV[t - 1, c, a] + Δt * (PEVc[t, c, a] - PEVd[t, c, a]) - Ωa[a]['Ef'][n] * Ωa[a]['Emax'][n])  
+                    model.addConstr(SoCEV[t, c, a] == 1, name=f"EV_SoC_end_{t}_{c}_{a}")
+                if t > Ωa[a]['arrival'][n] and t <= Ωa[a]['departure'][n]:
+                    model.addConstr(SoCEV[t, c, a] == SoCEV[t-1,c,a] + Δt * (PEVc[t,c,a] - PEVd[t,c,a])/Ωa[a]['Emax'][n], name=f"EV_SoC_{t}_{c}_{a}")
+                    model.addConstr(SoCEV[t, c, a] <= 1, name=f"EV_SoC_max_{t}_{c}_{a}")
                 elif t == Ωa[a]['arrival'][n]:
-                    n_cars += 1
-                    max_EV_charge += Ωa[a]['Emax'][n]
-                    if ccc[t-1] == 0:
-                        ccc[t-1] = 1  
-                    model.addConstr(SoCEV[t,c,a] == SoCEV[t - 1,c,a] + Δt * (PEVc[t,c,a] - PEVd[t,c,a]) + Ωa[a]['SoCArrival'][n] * Ωa[a]['Emax'][n])                                      
-                elif t > 1:
-                    model.addConstr(SoCEV[t,c,a] == SoCEV[t - 1,c,a] + Δt * (PEVc[t,c,a] - PEVd[t,c,a]))
-print(ccc)
+                    model.addConstr(SoCEV[t, c, a] == Ωa[a]['SoCini'][n], name=f"EV_SoC_ini_{t}_{c}_{a}")
+                if n < len(Ωa[a]['arrival']) - 1:
+                    if t > Ωa[a]['departure'][n] and t < Ωa[a]['arrival'][n+1]:
+                        print(t)
+                        model.addConstr(SoCEV[t, c, a] == 0, name=f"EV_SoC_between_{t}_{c}_{a}")
+                        model.addConstr(PEVc[t, c, a] == 0, name=f"EV_Charge_between_{t}_{c}_{a}")
+                        model.addConstr(PEVd[t, c, a] == 0, name=f"EV_Discharge_between_{t}_{c}_{a}")
+
+            model.addConstr(PEVc[t,c,a] <= par['EVPmaxc'] * γEVc[t,c,a], name=f"EV_ChargeMax_{t}_{c}_{a}")
+            model.addConstr(PEVd[t,c,a] <= par['EVPmaxd'] * γEVd[t,c,a], name=f"EV_DischargeMax_{t}_{c}_{a}")
+            model.addConstr(γEVc[t,c,a] + γEVd[t,c,a] <= 1, name=f"EV_Charge_Discharge_condition_{t}_{c}_{a}")
+
 # Active power balance constraint
 for t in Ωt:
     for c in Ωc:
@@ -231,41 +258,7 @@ num_a = len(Ωa)
 from itertools import product
 
 
-Ωc_a_pairs = list(product(Ωc, Ωa))
-
-Ωc_a_pairs1 = list(product(Ωc, Ωa))
-
-# Create a 2x2 grid of subplots
-fig, axes1 = plt.subplots(2, 2, figsize=(15, 10))
-fig, axes2 = plt.subplots(2, 2, figsize=(15, 10))
-# Flatten the 2D array of subplots for easy indexing
-axes1 = axes1.flatten()
-axes2 = axes2.flatten()
-
 # Loop over combinations of c and a
-for idx, (c, a) in enumerate(Ωc_a_pairs):  # Assuming Ωc_a_pairs is a list of pairs (c, a)
-    # Power-related plots
-    axes1[idx].plot(Ωt, [PS_values[t, c, a] for t in Ωt], label="PS")
-    axes1[idx].plot(Ωt, [PGD_values[t, c, a] for t in Ωt], label="PGD")
-    axes1[idx].plot(Ωt, [PD['1'][t-1] for t in Ωt], label="PD")
-    axes1[idx].plot(Ωt, [fPV['1'][t-1] * PPVmax_value for t in Ωt], label="fPV")
-    axes1[idx].plot(Ωt, [PAEc_values[t, c, a] for t in Ωt], label="PAEc")
-    axes1[idx].plot(Ωt, [-1 * PAEd_values[t, c, a] for t in Ωt], label="PAEd")
-    axes1[idx].plot(Ωt, [PAEc_values[t, c, a] for t in Ωt], label="PEVc")
-    axes1[idx].plot(Ωt, [-1 * PAEd_values[t, c, a] for t in Ωt], label="PEVd")
-    axes1[idx].legend()
-    axes1[idx].set_xlabel("Timestamp")
-    axes1[idx].set_ylabel("Power [kW]")
-    axes1[idx].set_title(f"Power Values - c{c}, a{a}")
-
-for idx, (c, a) in enumerate(Ωc_a_pairs1):  # Assuming Ωc_a_pairs is a list of pairs (c, a)
-    axes2[idx].plot(Ωt, [EAE_values[t, c, a]/EAEmax_value for t in Ωt], label="EAE")
-    axes2[idx].plot(Ωt, [SoCEV_values[t, c, a] for t in Ωt], label="SoCEV")
-    axes2[idx].plot(Ωt, cOS['1'], label="cOS")  # Plot cOS values
-    axes2[idx].legend()
-    axes2[idx].set_xlabel("Timestamp")
-    axes2[idx].set_ylabel("Power [kW]")
-    axes2[idx].set_title(f"EV Power - c{c}, a{a}")
 
 
 # Adjust layout to prevent overlap

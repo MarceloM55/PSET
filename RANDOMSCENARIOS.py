@@ -8,15 +8,19 @@ def generate_scenario(num_scenarios):
         valid_scenario = False
 
         while not valid_scenario:
-            arrival = sorted([random.randint(1, 96) for _ in range(3)])
-            departure = sorted([random.randint(arrival[j], 96) for j in range(3)])
-            EVmax = [random.randint(20, 50) for _ in range(3)]
-            SoCini = [random.uniform(0, 1) for _ in range(3)]
+            n_cars = int(random.random()*10) + 1
+            arrival = sorted([random.randint(1, 96) for _ in range(n_cars)])
+            departure = sorted([random.randint(arrival[j], 96) for j in range(n_cars)])
+            EVmax = [random.randint(20, 50) for _ in range(n_cars)]
+            SoCini = [random.uniform(0, 1) for _ in range(n_cars)]
 
             # Check if d1 - a1 > 16, d2 - a2 > 16, and d3 - a3 > 16
             # Check if a1 < d1 < a2 < d2 < a3 < d3
-            if (departure[0] - arrival[0] > 16 and departure[1] - arrival[1] > 16 and departure[2] - arrival[2] > 16
-                    and arrival[0] < departure[0] < arrival[1] < departure[1] < arrival[2] < departure[2]):
+            valid = 1
+            for k in range(n_cars - 1):
+                if not(departure[k] - arrival[k] > 16 and arrival[k] < departure[k] < arrival[k+1]):
+                    valid = 0
+            if valid == 1:
                 valid_scenario = True
 
         scenarios[str(i)] = {
@@ -28,7 +32,7 @@ def generate_scenario(num_scenarios):
 
     return scenarios
 
-num_scenarios = 10  # You can change this number to generate more scenarios
+num_scenarios = 20  # You can change this number to generate more scenarios
 result = generate_scenario(num_scenarios)
 
 # Export to JSON file
