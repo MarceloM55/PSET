@@ -54,25 +54,24 @@ SoCEV  = {(t, c, a): model.addVar(name=f"EEV_{t}_{c}_{a}", lb=0)            for 
 γEVc = {(t, c, a): model.addVar(vtype=GRB.BINARY, name=f"EVCharge{a}")    for t in Ωt for c in Ωc for a in Ωa} 
 γEVd = {(t, c, a): model.addVar(vtype=GRB.BINARY, name=f"EVDischarge{a}") for t in Ωt for c in Ωc for a in Ωa} 
 
-OPEX = model.addVar(name="CAPEX", lb=0)
-CAPEX = model.addVar(name="OPEX", lb=0)
-
-
-model.addConstr(CAPEX == par['cIPV'] * PPVmax + par['cIT'] * PGDmax + par['cIPA'] * PAEmax + par['cIEA'] * EAEmax)
-model.addConstr(OPEX == gp.quicksum((365 * gp.quicksum(πs[s] * πc[c] * Δt * par['cOS'][t-1] * PSp[t, s, c, a]    for t in Ωt for s in Ωs for c in Ωc for a in Ωa) +
-    365 * gp.quicksum(πs[s] * πc[c] * Δt * par['cOT'] * PGD[t, c, a]            for t in Ωt for s in Ωs for c in Ωc for a in Ωa) +
-    365 * gp.quicksum(πs[s] * πc[c] * Δt * par['cCC'] * par['MaxL'] * fp[s]["load"][t-1] * xD[t, s, c, a] for t in Ωt for s in Ωs for s in Ωs for c in Ωc for a in Ωa),
-)) for y in )
+OPEX = model.addVar(name="OPEX", lb=0)
+CAPEX = model.addVar(name="CAPEX", lb=0)
+OPEX_yearly = model.addVar(name="OPEX", lb=0)
 
 
 # Objective function
-model.setObjective(
-    par['cIPV'] * PPVmax + par['cIT'] * PGDmax + par['cIPA'] * PAEmax + par['cIEA'] * EAEmax +
+model.setObjective(OPEX + CAPEX, GRB.MINIMIZE)
+
+# Constraints
+model.addConstr(OPEX_yearly == 
     365 * gp.quicksum(πs[s] * πc[c] * Δt * par['cOS'][t-1] * PSp[t, s, c, a]    for t in Ωt for s in Ωs for c in Ωc for a in Ωa) +
     365 * gp.quicksum(πs[s] * πc[c] * Δt * par['cOT'] * PGD[t, c, a]            for t in Ωt for s in Ωs for c in Ωc for a in Ωa) +
     365 * gp.quicksum(πs[s] * πc[c] * Δt * par['cCC'] * par['MaxL'] * fp[s]["load"][t-1] * xD[t, s, c, a] for t in Ωt for s in Ωs for s in Ωs for c in Ωc for a in Ωa),
-    GRB.MINIMIZE
+    name="OPEX_yearly"
 )
+
+model.addConstr(CAPEX == par['cIPV'] * PPVmax + par['cIT'] * PGDmax + par['cIPA'] * PAEmax + par['cIEA'] * EAEmax, name="CAPEX")
+model.addConstr(OPEX == gp.quicksum( (1/(1+par['rate'])**y) * OPEX_yearly for y in range(1,par['nyears']+1)))
 
 #Equal operation before contingency
 for t in Ωt:
