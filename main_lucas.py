@@ -9,7 +9,7 @@ fp = json.load(open('parameters/scenarios15m.json', 'r'))
 par = json.load(open('parameters/parameters.json', 'r'))
 contingency = json.load(open('parameters/contingency.json', 'r'))
 
-Ωa = json.load(open('parameters/EV.json', 'r'))
+Ωa = json.load(open('parameters/EVsmall.json', 'r'))
 Ωt = list(range(1, 97))
 Ωc = contingency['timestamp']
 Ωs = fp.keys()
@@ -26,6 +26,11 @@ PPVmax = model.addVar(name="PPVmax", lb=0)
 PGDmax = model.addVar(name="PGDmax", lb=0)
 PAEmax = model.addVar(name="PAEmax", lb=0)
 EAEmax = model.addVar(name="EAEmax", lb=0)
+
+OPEX = model.addVar(name="OPEX", lb=0)
+CAPEX = model.addVar(name="CAPEX", lb=0)
+OPEX_yearly = model.addVar(name="OPEX", lb=0)
+
 
 PS   = {(t, s, c, a): model.addVar(name=f"PS_{t}_{c}_{a}", lb=par['PSmin'], ub=par['PSmax'])    for t in Ωt for s in Ωs for c in Ωc for a in Ωa} # Substation Power in time t, contingency c, and EV scenario a
 PSp   = {(t, s, c, a): model.addVar(name=f"PSp_{t}_{c}_{a}", lb=0, ub=par['PSmax'])             for t in Ωt for s in Ωs for c in Ωc for a in Ωa} # Substation Power in time t, contingency c, and EV scenario a
@@ -53,13 +58,18 @@ SoCEV  = {(t, c, a): model.addVar(name=f"EEV_{t}_{c}_{a}", lb=0)            for 
 γEVd = {(t, c, a): model.addVar(vtype=GRB.BINARY, name=f"EVDischarge{a}") for t in Ωt for c in Ωc for a in Ωa} 
 
 # Objective function
-model.setObjective(
-    par['cIPV'] * PPVmax + par['cIT'] * PGDmax + par['cIPA'] * PAEmax + par['cIEA'] * EAEmax +
+model.setObjective(OPEX + CAPEX, GRB.MINIMIZE)
+
+# Constraints
+model.addConstr(OPEX_yearly == 
     365 * gp.quicksum(πs[s] * πc[c] * Δt * par['cOS'][t-1] * PSp[t, s, c, a]    for t in Ωt for s in Ωs for c in Ωc for a in Ωa) +
     365 * gp.quicksum(πs[s] * πc[c] * Δt * par['cOT'] * PGD[t, c, a]            for t in Ωt for s in Ωs for c in Ωc for a in Ωa) +
     365 * gp.quicksum(πs[s] * πc[c] * Δt * par['cCC'] * par['MaxL'] * fp[s]["load"][t-1] * xD[t, s, c, a] for t in Ωt for s in Ωs for s in Ωs for c in Ωc for a in Ωa),
-    GRB.MINIMIZE
+    name="OPEX_yearly"
 )
+
+model.addConstr(CAPEX == par['cIPV'] * PPVmax + par['cIT'] * PGDmax + par['cIPA'] * PAEmax + par['cIEA'] * EAEmax, name="CAPEX")
+model.addConstr(OPEX == gp.quicksum( (1/(1+par['rate'])**y) * OPEX_yearly for y in range(1,par['nyears']+1)))
 
 # Assuming Ωt is the list of time intervals
 for t in Ωt:
@@ -136,7 +146,7 @@ for t in Ωt:
             )
             if t == 1:
                 model.addConstr(
-                    EAE[t, c, a] == par['EAE0'] + par['alpha'] * Δt * PAEc[t, c, a] - Δt * PAEd[t, c, a] / par['alpha'] - par['beta'] * Δt * EAE[t, c, a],
+                    EAE[t, c, a] == par['EAE0'] * EAEmax + par['alpha'] * Δt * PAEc[t, c, a] - Δt * PAEd[t, c, a] / par['alpha'] - par['beta'] * Δt * EAE[t, c, a],
                     name=f"Initial_Energy_Storage_{t}_{c}"
             )
             model.addConstr(
@@ -166,6 +176,16 @@ for c in Ωc:
                         PS[t, s, c, a] == 0,
                         name=f"Contingency_Operation_{t}_{s}_{c}_{a}"
                     )
+
+for t in Ωt:
+    for s in Ωs:
+        for c in Ωc:
+            for a in Ωa:
+                if t < c:
+                    model.addConstr(EAE[t, c, a] >= 0.5*EAEmax, name=f"BESS_before_Contingency_Operation_{t}_{s}_{c}_{a}")
+                    model.addConstr(EAE[t, c, a] == EAE[t, 0, a], name=f"BESS_Contingency_Operation_{t}_{s}_{c}_{a}")
+                    model.addConstr(SoCEV[t, c, a] == SoCEV[t, 0, a], name=f"EV_before_Contingency_Operation_{t}_{s}_{c}_{a}")
+
 
 # Solve the model
 model.optimize()
@@ -202,9 +222,10 @@ for s in Ωs:
             plt.figure()
             plt.plot(Ωt, [PS_values[t, s, c, a] for t in Ωt], label="EDS")
             plt.plot(Ωt, [PGD_values[t, c, a] for t in Ωt], label="Thermal Generator")
-            plt.plot(Ωt, [fp[s]['load'][t-1]*par['MaxL'] for t in Ωt], label="Demand")
+            plt.plot(Ωt, [fp[s]['load'][t-1]*par['MaxL']*(1 - xD_values[t,s,c,a]) for t in Ωt], label="Demand")
             plt.plot(Ωt, [-1*fp[s]['pv'][t-1] * PPVmax_value * (1-xD_values[t,s,c,a]) for t in Ωt], label="PV")
-            plt.plot(Ωt, [PAEc_values[t, c, a] - PAEd_values[t, c, a] for t in Ωt], label="BESS")
+            if EAEmax_value > 0:
+                plt.plot(Ωt, [PAEc_values[t, c, a] - PAEd_values[t, c, a] for t in Ωt], label="BESS")
             plt.plot(Ωt, [PEVc_values[t, c, a] - PEVd_values[t, c, a] for t in Ωt], label="EV")
             plt.legend()
             plt.xlabel("Timestamp")
@@ -215,7 +236,8 @@ for s in Ωs:
 for c in Ωc:
     for a in Ωa:
         plt.figure()
-        plt.plot(Ωt, [EAE_values[t, c, a]/EAEmax_value for t in Ωt], label="EAE")
+        if EAEmax_value > 0:
+            plt.plot(Ωt, [EAE_values[t, c, a]/EAEmax_value for t in Ωt], label="EAE")
         plt.plot(Ωt, [SoCEV_values[t, c, a] for t in Ωt], label="SoCEV")
         plt.legend()
         plt.xlabel("Timestamp")
