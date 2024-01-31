@@ -1,0 +1,642 @@
+[
+    {
+        "1": {
+            "1": {
+                "arrival": [
+                    40
+                ],
+                "departure": [
+                    40
+                ],
+                "SoCini": [
+                    0.20008121215614988
+                ],
+                "probability": 0.023
+            },
+            "2": {
+                "arrival": [
+                    47
+                ],
+                "departure": [
+                    55
+                ],
+                "SoCini": [
+                    0.6316352735932105
+                ],
+                "probability": 0.136
+            },
+            "3": {
+                "arrival": [
+                    54
+                ],
+                "departure": [
+                    70
+                ],
+                "SoCini": [
+                    0.22669577972377186
+                ],
+                "probability": 0.682
+            },
+            "4": {
+                "arrival": [
+                    61
+                ],
+                "departure": [
+                    85
+                ],
+                "SoCini": [
+                    0.8475402241081466
+                ],
+                "probability": 0.136
+            },
+            "5": {
+                "arrival": [
+                    68
+                ],
+                "departure": [
+                    100
+                ],
+                "SoCini": [
+                    0.39061951034638176
+                ],
+                "probability": 0.023
+            }
+        }
+    },
+    {
+        "2": {
+            "1": {
+                "arrival": [
+                    50
+                ],
+                "departure": [
+                    46
+                ],
+                "SoCini": [
+                    0.5007750136556295
+                ],
+                "probability": 0.023
+            },
+            "2": {
+                "arrival": [
+                    53
+                ],
+                "departure": [
+                    61
+                ],
+                "SoCini": [
+                    0.4021745546292259
+                ],
+                "probability": 0.136
+            },
+            "3": {
+                "arrival": [
+                    55
+                ],
+                "departure": [
+                    76
+                ],
+                "SoCini": [
+                    0.7250492466603766
+                ],
+                "probability": 0.682
+            },
+            "4": {
+                "arrival": [
+                    58
+                ],
+                "departure": [
+                    91
+                ],
+                "SoCini": [
+                    0.7429687932510534
+                ],
+                "probability": 0.136
+            },
+            "5": {
+                "arrival": [
+                    61
+                ],
+                "departure": [
+                    106
+                ],
+                "SoCini": [
+                    0.39111990637243177
+                ],
+                "probability": 0.023
+            }
+        }
+    },
+    {
+        "3": {
+            "1": {
+                "arrival": [
+                    55
+                ],
+                "departure": [
+                    46
+                ],
+                "SoCini": [
+                    0.812607207447253
+                ],
+                "probability": 0.023
+            },
+            "2": {
+                "arrival": [
+                    58
+                ],
+                "departure": [
+                    61
+                ],
+                "SoCini": [
+                    0.5315088339654881
+                ],
+                "probability": 0.136
+            },
+            "3": {
+                "arrival": [
+                    60
+                ],
+                "departure": [
+                    76
+                ],
+                "SoCini": [
+                    0.7002086820469875
+                ],
+                "probability": 0.682
+            },
+            "4": {
+                "arrival": [
+                    63
+                ],
+                "departure": [
+                    91
+                ],
+                "SoCini": [
+                    0.48521061793949277
+                ],
+                "probability": 0.136
+            },
+            "5": {
+                "arrival": [
+                    66
+                ],
+                "departure": [
+                    106
+                ],
+                "SoCini": [
+                    0.3065937516685302
+                ],
+                "probability": 0.023
+            }
+        }
+    },
+    {
+        "4": {
+            "1": {
+                "arrival": [
+                    62
+                ],
+                "departure": [
+                    47
+                ],
+                "SoCini": [
+                    0.583134345778961
+                ],
+                "probability": 0.023
+            },
+            "2": {
+                "arrival": [
+                    65
+                ],
+                "departure": [
+                    62
+                ],
+                "SoCini": [
+                    0.7335913167599937
+                ],
+                "probability": 0.136
+            },
+            "3": {
+                "arrival": [
+                    69
+                ],
+                "departure": [
+                    77
+                ],
+                "SoCini": [
+                    0.28206804712949785
+                ],
+                "probability": 0.682
+            },
+            "4": {
+                "arrival": [
+                    72
+                ],
+                "departure": [
+                    92
+                ],
+                "SoCini": [
+                    0.18149650566380754
+                ],
+                "probability": 0.136
+            },
+            "5": {
+                "arrival": [
+                    75
+                ],
+                "departure": [
+                    107
+                ],
+                "SoCini": [
+                    0.9220697038858745
+                ],
+                "probability": 0.023
+            }
+        }
+    },
+    {
+        "5": {
+            "1": {
+                "arrival": [
+                    63
+                ],
+                "departure": [
+                    60
+                ],
+                "SoCini": [
+                    0.13309750642179075
+                ],
+                "probability": 0.023
+            },
+            "2": {
+                "arrival": [
+                    66
+                ],
+                "departure": [
+                    75
+                ],
+                "SoCini": [
+                    0.05406417497473637
+                ],
+                "probability": 0.136
+            },
+            "3": {
+                "arrival": [
+                    69
+                ],
+                "departure": [
+                    90
+                ],
+                "SoCini": [
+                    0.6081427701430391
+                ],
+                "probability": 0.682
+            },
+            "4": {
+                "arrival": [
+                    72
+                ],
+                "departure": [
+                    105
+                ],
+                "SoCini": [
+                    0.3446969572049764
+                ],
+                "probability": 0.136
+            },
+            "5": {
+                "arrival": [
+                    75
+                ],
+                "departure": [
+                    120
+                ],
+                "SoCini": [
+                    0.6061612560879299
+                ],
+                "probability": 0.023
+            }
+        }
+    },
+    {
+        "6": {
+            "1": {
+                "arrival": [
+                    54
+                ],
+                "departure": [
+                    55
+                ],
+                "SoCini": [
+                    0.5593577979122133
+                ],
+                "probability": 0.023
+            },
+            "2": {
+                "arrival": [
+                    58
+                ],
+                "departure": [
+                    70
+                ],
+                "SoCini": [
+                    0.5733898015996683
+                ],
+                "probability": 0.136
+            },
+            "3": {
+                "arrival": [
+                    62
+                ],
+                "departure": [
+                    85
+                ],
+                "SoCini": [
+                    0.8344902266425915
+                ],
+                "probability": 0.682
+            },
+            "4": {
+                "arrival": [
+                    66
+                ],
+                "departure": [
+                    100
+                ],
+                "SoCini": [
+                    0.5556715822818348
+                ],
+                "probability": 0.136
+            },
+            "5": {
+                "arrival": [
+                    69
+                ],
+                "departure": [
+                    115
+                ],
+                "SoCini": [
+                    0.8430524243251825
+                ],
+                "probability": 0.023
+            }
+        }
+    },
+    {
+        "7": {
+            "1": {
+                "arrival": [
+                    40
+                ],
+                "departure": [
+                    47
+                ],
+                "SoCini": [
+                    0.6136464198335402
+                ],
+                "probability": 0.023
+            },
+            "2": {
+                "arrival": [
+                    47
+                ],
+                "departure": [
+                    62
+                ],
+                "SoCini": [
+                    0.3277706724640981
+                ],
+                "probability": 0.136
+            },
+            "3": {
+                "arrival": [
+                    55
+                ],
+                "departure": [
+                    77
+                ],
+                "SoCini": [
+                    0.3979760569209881
+                ],
+                "probability": 0.682
+            },
+            "4": {
+                "arrival": [
+                    63
+                ],
+                "departure": [
+                    92
+                ],
+                "SoCini": [
+                    0.6239529882357308
+                ],
+                "probability": 0.136
+            },
+            "5": {
+                "arrival": [
+                    70
+                ],
+                "departure": [
+                    107
+                ],
+                "SoCini": [
+                    0.5297177212564028
+                ],
+                "probability": 0.023
+            }
+        }
+    },
+    {
+        "8": {
+            "1": {
+                "arrival": [
+                    50
+                ],
+                "departure": [
+                    33
+                ],
+                "SoCini": [
+                    0.8255466759389489
+                ],
+                "probability": 0.023
+            },
+            "2": {
+                "arrival": [
+                    52
+                ],
+                "departure": [
+                    48
+                ],
+                "SoCini": [
+                    0.16204979176236384
+                ],
+                "probability": 0.136
+            },
+            "3": {
+                "arrival": [
+                    54
+                ],
+                "departure": [
+                    63
+                ],
+                "SoCini": [
+                    0.8101616724020884
+                ],
+                "probability": 0.682
+            },
+            "4": {
+                "arrival": [
+                    56
+                ],
+                "departure": [
+                    78
+                ],
+                "SoCini": [
+                    0.5507405951610731
+                ],
+                "probability": 0.136
+            },
+            "5": {
+                "arrival": [
+                    58
+                ],
+                "departure": [
+                    93
+                ],
+                "SoCini": [
+                    0.30446398487121107
+                ],
+                "probability": 0.023
+            }
+        }
+    },
+    {
+        "9": {
+            "1": {
+                "arrival": [
+                    49
+                ],
+                "departure": [
+                    46
+                ],
+                "SoCini": [
+                    0.2557464401204596
+                ],
+                "probability": 0.023
+            },
+            "2": {
+                "arrival": [
+                    54
+                ],
+                "departure": [
+                    61
+                ],
+                "SoCini": [
+                    0.0
+                ],
+                "probability": 0.136
+            },
+            "3": {
+                "arrival": [
+                    60
+                ],
+                "departure": [
+                    76
+                ],
+                "SoCini": [
+                    0.742291804997308
+                ],
+                "probability": 0.682
+            },
+            "4": {
+                "arrival": [
+                    66
+                ],
+                "departure": [
+                    91
+                ],
+                "SoCini": [
+                    0.7274847794145461
+                ],
+                "probability": 0.136
+            },
+            "5": {
+                "arrival": [
+                    71
+                ],
+                "departure": [
+                    106
+                ],
+                "SoCini": [
+                    0.6168268065201699
+                ],
+                "probability": 0.023
+            }
+        }
+    },
+    {
+        "10": {
+            "1": {
+                "arrival": [
+                    44
+                ],
+                "departure": [
+                    29
+                ],
+                "SoCini": [
+                    0.4964370343468437
+                ],
+                "probability": 0.023
+            },
+            "2": {
+                "arrival": [
+                    47
+                ],
+                "departure": [
+                    44
+                ],
+                "SoCini": [
+                    0.8353236477378052
+                ],
+                "probability": 0.136
+            },
+            "3": {
+                "arrival": [
+                    50
+                ],
+                "departure": [
+                    59
+                ],
+                "SoCini": [
+                    0.571961386372799
+                ],
+                "probability": 0.682
+            },
+            "4": {
+                "arrival": [
+                    53
+                ],
+                "departure": [
+                    74
+                ],
+                "SoCini": [
+                    0.48354104497064165
+                ],
+                "probability": 0.136
+            },
+            "5": {
+                "arrival": [
+                    56
+                ],
+                "departure": [
+                    89
+                ],
+                "SoCini": [
+                    0.4193404820036247
+                ],
+                "probability": 0.023
+            }
+        }
+    }
+]

@@ -9,7 +9,7 @@ fp = json.load(open('parameters/scenarios15m.json', 'r'))
 par = json.load(open('parameters/parameters.json', 'r'))
 contingency = json.load(open('parameters/contingency.json', 'r'))
 
-Ωa = json.load(open('parameters/EVsmall.json', 'r'))
+Ωa = json.load(open('parameters/EV.json', 'r'))
 Ωt = list(range(1, 97))
 Ωc = contingency['timestamp']
 Ωs = fp.keys()
@@ -251,7 +251,8 @@ for s in Ωs:
 for c in Ωc:
     for a in Ωa:
         plt.figure()
-        plt.plot(Ωt, [EAE_values[t, c, a]/EAEmax_value for t in Ωt], label="EAE")
+        if EAEmax_value > 0:
+            plt.plot(Ωt, [EAE_values[t, c, a]/EAEmax_value for t in Ωt], label="EAE")
         plt.plot(Ωt, [SoCEV_values[t, c, a] for t in Ωt], label="SoCEV")
         plt.legend()
         plt.xlabel("Timestamp")

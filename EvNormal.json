@@ -1,0 +1,521 @@
+{
+    "0": {
+        "mean_arrival": [
+            21,
+            33,
+            35
+        ],
+        "mean_departure": [
+            38,
+            60,
+            11
+        ],
+        "Emax": [
+            49,
+            28,
+            50
+        ],
+        "SoCini": [
+            0.9362513428814148,
+            0.9857760360222675,
+            0.7389789393782475
+        ],
+        "Probability": [
+            0.023,
+            0.136,
+            0.682,
+            0.136,
+            0.023
+        ],
+        "sub1": {
+            "arrival": [
+                21
+            ],
+            "departure": [
+                38
+            ],
+            "sub1sub1": {
+                "arrival": [
+                    11
+                ],
+                "departure": [
+                    28
+                ]
+            },
+            "sub1sub2": {
+                "arrival": [
+                    16
+                ],
+                "departure": [
+                    33
+                ]
+            },
+            "sub1sub3": {
+                "arrival": [
+                    21
+                ],
+                "departure": [
+                    38
+                ]
+            },
+            "sub1sub4": {
+                "arrival": [
+                    26
+                ],
+                "departure": [
+                    43
+                ]
+            },
+            "sub1sub5": {
+                "arrival": [
+                    31
+                ],
+                "departure": [
+                    48
+                ]
+            }
+        },
+        "sub2": {
+            "arrival": [
+                33
+            ],
+            "departure": [
+                60
+            ],
+            "sub2sub1": {
+                "arrival": [
+                    23
+                ],
+                "departure": [
+                    50
+                ]
+            },
+            "sub2sub2": {
+                "arrival": [
+                    28
+                ],
+                "departure": [
+                    55
+                ]
+            },
+            "sub2sub3": {
+                "arrival": [
+                    33
+                ],
+                "departure": [
+                    60
+                ]
+            },
+            "sub2sub4": {
+                "arrival": [
+                    38
+                ],
+                "departure": [
+                    65
+                ]
+            },
+            "sub2sub5": {
+                "arrival": [
+                    43
+                ],
+                "departure": [
+                    70
+                ]
+            }
+        },
+        "sub3": {
+            "arrival": [
+                35
+            ],
+            "departure": [
+                11
+            ],
+            "sub3sub1": {
+                "arrival": [
+                    25
+                ],
+                "departure": [
+                    1
+                ]
+            },
+            "sub3sub2": {
+                "arrival": [
+                    30
+                ],
+                "departure": [
+                    6
+                ]
+            },
+            "sub3sub3": {
+                "arrival": [
+                    35
+                ],
+                "departure": [
+                    11
+                ]
+            },
+            "sub3sub4": {
+                "arrival": [
+                    40
+                ],
+                "departure": [
+                    16
+                ]
+            },
+            "sub3sub5": {
+                "arrival": [
+                    45
+                ],
+                "departure": [
+                    21
+                ]
+            }
+        }
+    },
+    "1": {
+        "mean_arrival": [
+            41,
+            43,
+            75
+        ],
+        "mean_departure": [
+            85,
+            32,
+            57
+        ],
+        "Emax": [
+            39,
+            41,
+            45
+        ],
+        "SoCini": [
+            0.034574320452200435,
+            0.4571102683467809,
+            0.05891512098233864
+        ],
+        "Probability": [
+            0.023,
+            0.136,
+            0.682,
+            0.136,
+            0.023
+        ],
+        "sub1": {
+            "arrival": [
+                41
+            ],
+            "departure": [
+                85
+            ],
+            "sub1sub1": {
+                "arrival": [
+                    31
+                ],
+                "departure": [
+                    75
+                ]
+            },
+            "sub1sub2": {
+                "arrival": [
+                    36
+                ],
+                "departure": [
+                    80
+                ]
+            },
+            "sub1sub3": {
+                "arrival": [
+                    41
+                ],
+                "departure": [
+                    85
+                ]
+            },
+            "sub1sub4": {
+                "arrival": [
+                    46
+                ],
+                "departure": [
+                    90
+                ]
+            },
+            "sub1sub5": {
+                "arrival": [
+                    51
+                ],
+                "departure": [
+                    95
+                ]
+            }
+        },
+        "sub2": {
+            "arrival": [
+                43
+            ],
+            "departure": [
+                32
+            ],
+            "sub2sub1": {
+                "arrival": [
+                    33
+                ],
+                "departure": [
+                    22
+                ]
+            },
+            "sub2sub2": {
+                "arrival": [
+                    38
+                ],
+                "departure": [
+                    27
+                ]
+            },
+            "sub2sub3": {
+                "arrival": [
+                    43
+                ],
+                "departure": [
+                    32
+                ]
+            },
+            "sub2sub4": {
+                "arrival": [
+                    48
+                ],
+                "departure": [
+                    37
+                ]
+            },
+            "sub2sub5": {
+                "arrival": [
+                    53
+                ],
+                "departure": [
+                    42
+                ]
+            }
+        },
+        "sub3": {
+            "arrival": [
+                75
+            ],
+            "departure": [
+                57
+            ],
+            "sub3sub1": {
+                "arrival": [
+                    65
+                ],
+                "departure": [
+                    47
+                ]
+            },
+            "sub3sub2": {
+                "arrival": [
+                    70
+                ],
+                "departure": [
+                    52
+                ]
+            },
+            "sub3sub3": {
+                "arrival": [
+                    75
+                ],
+                "departure": [
+                    57
+                ]
+            },
+            "sub3sub4": {
+                "arrival": [
+                    80
+                ],
+                "departure": [
+                    62
+                ]
+            },
+            "sub3sub5": {
+                "arrival": [
+                    85
+                ],
+                "departure": [
+                    67
+                ]
+            }
+        }
+    },
+    "2": {
+        "mean_arrival": [
+            14,
+            46,
+            48
+        ],
+        "mean_departure": [
+            47,
+            17,
+            59
+        ],
+        "Emax": [
+            41,
+            20,
+            25
+        ],
+        "SoCini": [
+            0.5371716194809758,
+            0.2623648569288347,
+            0.8222898178324817
+        ],
+        "Probability": [
+            0.023,
+            0.136,
+            0.682,
+            0.136,
+            0.023
+        ],
+        "sub1": {
+            "arrival": [
+                14
+            ],
+            "departure": [
+                47
+            ],
+            "sub1sub1": {
+                "arrival": [
+                    4
+                ],
+                "departure": [
+                    37
+                ]
+            },
+            "sub1sub2": {
+                "arrival": [
+                    9
+                ],
+                "departure": [
+                    42
+                ]
+            },
+            "sub1sub3": {
+                "arrival": [
+                    14
+                ],
+                "departure": [
+                    47
+                ]
+            },
+            "sub1sub4": {
+                "arrival": [
+                    19
+                ],
+                "departure": [
+                    52
+                ]
+            },
+            "sub1sub5": {
+                "arrival": [
+                    24
+                ],
+                "departure": [
+                    57
+                ]
+            }
+        },
+        "sub2": {
+            "arrival": [
+                46
+            ],
+            "departure": [
+                17
+            ],
+            "sub2sub1": {
+                "arrival": [
+                    36
+                ],
+                "departure": [
+                    7
+                ]
+            },
+            "sub2sub2": {
+                "arrival": [
+                    41
+                ],
+                "departure": [
+                    12
+                ]
+            },
+            "sub2sub3": {
+                "arrival": [
+                    46
+                ],
+                "departure": [
+                    17
+                ]
+            },
+            "sub2sub4": {
+                "arrival": [
+                    51
+                ],
+                "departure": [
+                    22
+                ]
+            },
+            "sub2sub5": {
+                "arrival": [
+                    56
+                ],
+                "departure": [
+                    27
+                ]
+            }
+        },
+        "sub3": {
+            "arrival": [
+                48
+            ],
+            "departure": [
+                59
+            ],
+            "sub3sub1": {
+                "arrival": [
+                    38
+                ],
+                "departure": [
+                    49
+                ]
+            },
+            "sub3sub2": {
+                "arrival": [
+                    43
+                ],
+                "departure": [
+                    54
+                ]
+            },
+            "sub3sub3": {
+                "arrival": [
+                    48
+                ],
+                "departure": [
+                    59
+                ]
+            },
+            "sub3sub4": {
+                "arrival": [
+                    53
+                ],
+                "departure": [
+                    64
+                ]
+            },
+            "sub3sub5": {
+                "arrival": [
+                    58
+                ],
+                "departure": [
+                    69
+                ]
+            }
+        }
+    }
+}
