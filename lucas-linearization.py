@@ -37,29 +37,26 @@ OPEX_yearly = model.addVar(name="OPEX", lb=0)
 
 
 PS   = {(t, s, c, a): model.addVar(name=f"PS_{t}_{c}_{a}", lb=par['PSmin'], ub=par['PSmax'])    for t in Ωt for s in Ωs for c in Ωc for a in Ωa} # Substation Power in time t, contingency c, and EV scenario a
-PSp   = {(t, s, c, a): model.addVar(name=f"PSp_{t}_{c}_{a}", lb=0)             for t in Ωt for s in Ωs for c in Ωc for a in Ωa} # Substation Power in time t, contingency c, and EV scenario a
-PSn   = {(t, s, c, a): model.addVar(name=f"PSn_{t}_{c}_{a}", lb=0)             for t in Ωt for s in Ωs for c in Ωc for a in Ωa} # Substation Power in time t, contingency c, and EV scenario a
+PSp   = {(t, s, c, a): model.addVar(name=f"PSp_{t}_{c}_{a}", lb=0)                  for t in Ωt for s in Ωs for c in Ωc for a in Ωa} # Substation Power in time t, contingency c, and EV scenario a
+PSn   = {(t, s, c, a): model.addVar(name=f"PSn_{t}_{c}_{a}", lb=0)                  for t in Ωt for s in Ωs for c in Ωc for a in Ωa} # Substation Power in time t, contingency c, and EV scenario a
 
 
-xD   = {(t, s, c, a): model.addVar(name=f"xD_{t}_{c}_{a}", lb=0, ub=1)                  for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
+xD   = {(t, s, c, a): model.addVar(name=f"xD_{t}_{c}_{a}", lb=0, ub=1)              for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
 
-PGD  = {(t, c, a): model.addVar(name=f"PGD_{t}_{c}_{a}", lb=0, ub=par['MaxGD'])         for t in Ωt for c in Ωc for a in Ωa}
+PGD  = {(t, c, a): model.addVar(name=f"PGD_{t}_{c}_{a}", lb=0, ub=par['MaxGD'])     for t in Ωt for c in Ωc for a in Ωa}
 
-PAEc = {(t, c, a): model.addVar(name=f"PAEi_{t}_{c}_{a}", lb=0)             for t in Ωt for c in Ωc for a in Ωa}
-PAEd = {(t, c, a): model.addVar(name=f"PAEe_{t}_{c}_{a}", lb=0)             for t in Ωt for c in Ωc for a in Ωa}
-EAE  = {(t, c, a): model.addVar(name=f"EAE_{t}_{c}_{a}", lb=0)              for t in Ωt for c in Ωc for a in Ωa}
-
-γAEc = {(t, c, a): model.addVar(vtype=GRB.BINARY, name=f"AECharge{a}")      for t in Ωt for c in Ωc for a in Ωa} 
-γAEd = {(t, c, a): model.addVar(vtype=GRB.BINARY, name=f"AEDischarge{a}")   for t in Ωt for c in Ωc for a in Ωa} 
-
-PEVc = {(t, c, a): model.addVar(name=f"PAEi_{t}_{c}_{a}", lb=0)             for t in Ωt for c in Ωc for a in Ωa}
-PEVd = {(t, c, a): model.addVar(name=f"PAEe_{t}_{c}_{a}", lb=0)             for t in Ωt for c in Ωc for a in Ωa}
-SoCEV  = {(t, c, a): model.addVar(name=f"EEV_{t}_{c}_{a}", lb=0)            for t in Ωt for c in Ωc for a in Ωa}
+PAEc = {(t, c, a): model.addVar(name=f"PAEi_{t}_{c}_{a}", lb=0)                     for t in Ωt for c in Ωc for a in Ωa}
+PAEd = {(t, c, a): model.addVar(name=f"PAEe_{t}_{c}_{a}", lb=0)                     for t in Ωt for c in Ωc for a in Ωa}
+EAE  = {(t, c, a): model.addVar(name=f"EAE_{t}_{c}_{a}", lb=0)                      for t in Ωt for c in Ωc for a in Ωa}
 
 
-# Define binary decision variables for EV availability scenarios
-γEVc = {(t, c, a): model.addVar(vtype=GRB.BINARY, name=f"EVCharge{a}")    for t in Ωt for c in Ωc for a in Ωa} 
-γEVd = {(t, c, a): model.addVar(vtype=GRB.BINARY, name=f"EVDischarge{a}") for t in Ωt for c in Ωc for a in Ωa} 
+
+PEVc = {(t, c, a): model.addVar(name=f"PAEi_{t}_{c}_{a}", lb=0, ub=par['EVPmaxc'])  for t in Ωt for c in Ωc for a in Ωa}
+PEVd = {(t, c, a): model.addVar(name=f"PAEe_{t}_{c}_{a}", lb=0, ub=par['EVPmaxd'])  for t in Ωt for c in Ωc for a in Ωa}
+SoCEV  = {(t, c, a): model.addVar(name=f"EEV_{t}_{c}_{a}", lb=0)                    for t in Ωt for c in Ωc for a in Ωa}
+
+
+ 
 
 # Objective function
 model.setObjective(OPEX + CAPEX, GRB.MINIMIZE)
@@ -93,6 +90,10 @@ for t in Ωt:
                 if t > Ωa[a]['arrival'][n] and t <= Ωa[a]['departure'][n]:
                     model.addConstr(SoCEV[t, c, a] == SoCEV[t-1,c,a] + Δt * (PEVc[t,c,a] - PEVd[t,c,a])/Ωa[a]['Emax'][n], name=f"EV_SoC_{t}_{c}_{a}")
                     model.addConstr(SoCEV[t, c, a] <= 1, name=f"EV_SoC_max_{t}_{c}_{a}")
+                    model.addConstr(PEVc[t,c,a] <= (1 - SoCEV[t-1, c, a]) * Ωa[a]['Emax'][n]/Δt, name=f"EV_Charge_Constraint_{t}_{c}_{a}")
+                    model.addConstr(PEVd[t,c,a] <= SoCEV[t-1, c, a] * Ωa[a]['Emax'][n]/Δt, name=f"EV_Discharge_Constraint_{t}_{c}_{a}")
+                    model.addConstr(PEVd[t,c,a] <= par['EVPmaxd'] - (par['EVPmaxd']/par['EVPmaxc'])*PEVc[t,c,a], name=f"EV_Discharge_Max_{t}_{c}_{a}")
+                
                 elif t == Ωa[a]['arrival'][n]:
                     model.addConstr(SoCEV[t, c, a] == Ωa[a]['SoCini'][n], name=f"EV_SoC_ini_{t}_{c}_{a}")
                 elif n < len(Ωa[a]['arrival']) - 1:
@@ -101,9 +102,9 @@ for t in Ωt:
                         model.addConstr(PEVc[t, c, a] == 0, name=f"EV_Charge_between_{t}_{c}_{a}")
                         model.addConstr(PEVd[t, c, a] == 0, name=f"EV_Discharge_between_{t}_{c}_{a}")
 
-            model.addConstr(PEVc[t,c,a] <= par['EVPmaxc'] * γEVc[t,c,a], name=f"EV_ChargeMax_{t}_{c}_{a}")
-            model.addConstr(PEVd[t,c,a] <= par['EVPmaxd'] * γEVd[t,c,a], name=f"EV_DischargeMax_{t}_{c}_{a}")
-            model.addConstr(γEVc[t,c,a] + γEVd[t,c,a] <= 1, name=f"EV_Charge_Discharge_condition_{t}_{c}_{a}")
+            # model.addConstr(PEVc[t,c,a] <= par['EVPmaxc'], name=f"EV_ChargeMax_{t}_{c}_{a}")
+            # model.addConstr(PEVd[t,c,a] <= par['EVPmaxd'], name=f"EV_DischargeMax_{t}_{c}_{a}")
+  
 
 
 # Active power balance constraint
@@ -147,28 +148,25 @@ for t in Ωt:
                 model.addConstr(
                     EAE[t, c, a] == EAE[t - 1, c, a] + par['alpha'] * Δt * PAEc[t, c, a] - Δt * PAEd[t, c, a] / par['alpha'],
                     name=f"Energy_Storage_Balance_{t}_{c}_{a}"
-            )
+                )
+                model.addConstr(PAEc[t, c, a] <= (EAEmax - EAE[t-1, c, a])/(par['alpha'] * Δt), name=f"Max_Charge_BESS_1_{t}_{c}_{a}")
+                model.addConstr(PAEd[t, c, a] <= EAE[t-1, c, a]*par['alpha']/Δt, name=f"Max_Discharge_BESS_1_{t}_{c}_{a}")
+                
             if t == 1:
                 model.addConstr(
                     EAE[t, c, a] == par['EAE0'] * EAEmax + par['alpha'] * Δt * PAEc[t, c, a] - Δt * PAEd[t, c, a] / par['alpha'],
                     name=f"Initial_Energy_Storage_{t}_{c}"
-            )
-            model.addConstr(
-                EAE[t, c, a] <= EAEmax,
-                name=f"Max_Energy_Storage_Capacity_{t}_{c}_{a}"
-            )
-            model.addConstr(
-                PAEc[t, c, a] <= PAEmax * γAEc[t, c, a],
-                name=f"Max_Injection_Power_{t}_{c}_{a}"
-            )
-            model.addConstr(
-                PAEd[t, c, a] <= PAEmax * γAEd[t, c, a],
-                name=f"Max_Extraction_Power_{t}_{c}_{a}"
-            )
-            model.addConstr(
-                γAEc[t, c, a] + γAEd[t, c, a] <= 1,
-                name=f"AE_Chage_Discharge_condition_{t}_{c}_{a}"
-            )
+                )
+                model.addConstr(PAEc[t, c, a] <= (EAEmax - par['EAE0'])/(par['alpha'] * Δt), name=f"Max_Charge_BESS_2_{t}_{c}_{a}")
+                model.addConstr(PAEd[t, c, a] <= par['EAE0']*par['alpha']/Δt, name=f"Max_Discharge_BESS_2_{t}_{c}_{a}")
+
+            model.addConstr(PAEd[t, c, a] <= PAEmax - PAEc[t, c, a], name=f"Max_Discharge_BESS_General_{t}_{c}_{a}")
+            model.addConstr(EAE[t, c, a] <= EAEmax, name=f"Max_Energy_Storage_Capacity_{t}_{c}_{a}")
+            model.addConstr(PAEc[t, c, a] <= PAEmax, name=f"Max_Injection_Power_{t}_{c}_{a}")
+            model.addConstr(PAEd[t, c, a] <= PAEmax, name=f"Max_Extraction_Power_{t}_{c}_{a}")
+
+
+           
 
 # Contingency operation constraint
 for c in Ωc:
@@ -200,7 +198,7 @@ print(PPVmax)
 print(PGDmax)
 print(PAEmax)
 print(EAEmax)
-print(f'Total execution time (MILP): {end - start} seconds')
+print(f'total execution time (LP): {end - start} seconds')
 
 
 # Extract the values for plotting
@@ -223,8 +221,8 @@ PAEmax_value = PAEmax.x
 EAEmax_value = EAEmax.x
 
 
-if not os.path.exists("Results"):
-    os.makedirs("Results")
+# if not os.path.exists("Results"):
+#     os.makedirs("Results")
 
 
 # for s in Ωs:
