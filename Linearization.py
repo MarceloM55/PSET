@@ -196,7 +196,7 @@ for t in Ωt:
                 name=f"AE_Chage_Discharge_condition_{t}_{c}_{a}"
             )
             if (t < c) or c == 0:
-                model.addConstr(EAE[t, c, a] == 0.5 * EAEmax)
+                model.addConstr(EAE[t, c, a] >= 0.5 * EAEmax)
 
 
 # Contingency operation constraint
