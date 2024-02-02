@@ -51,9 +51,9 @@ EAE  = {(t, s, c, a): model.addVar(name=f"EAE_{t}_{c}_{a}", lb=0)               
 
 
 
-PEVc = {(t, c, a): model.addVar(name=f"PAEi_{t}_{c}_{a}", lb=0, ub=par['EVPmaxc'])  for t in Ωt for c in Ωc for a in Ωa}
-PEVd = {(t, c, a): model.addVar(name=f"PAEe_{t}_{c}_{a}", lb=0, ub=par['EVPmaxd'])  for t in Ωt for c in Ωc for a in Ωa}
-SoCEV  = {(t, c, a): model.addVar(name=f"EEV_{t}_{c}_{a}", lb=0)                    for t in Ωt for c in Ωc for a in Ωa}
+PEVc = {(t, s, c, a): model.addVar(name=f"PAEi_{t}_{c}_{a}", lb=0, ub=par['EVPmaxc'])  for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
+PEVd = {(t, s, c, a): model.addVar(name=f"PAEe_{t}_{c}_{a}", lb=0, ub=par['EVPmaxd'])  for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
+SoCEV  = {(t, s, c, a): model.addVar(name=f"EEV_{t}_{c}_{a}", lb=0)                    for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
 
 
  
@@ -74,37 +74,38 @@ model.addConstr(OPEX == gp.quicksum( (1/(1+par['rate'])**y) * OPEX_yearly for y 
 
 # Assuming Ωt is the list of time intervals
 for t in Ωt:
-    for c in Ωc:
-        for a in Ωa:
-            if t < Ωa[a]['arrival'][0]:
-                model.addConstr(SoCEV[t, c, a] == 0, name=f"EV_SoC_before_{t}_{c}_{a}")
-                model.addConstr(PEVc[t, c, a] == 0, name=f"EV_Charge_before_{t}_{c}_{a}")
-                model.addConstr(PEVd[t, c, a] == 0, name=f"EV_Discharge_before_{t}_{c}_{a}")
-            elif t > Ωa[a]['departure'][-1]:
-                model.addConstr(SoCEV[t, c, a] == 0, name=f"EV_SoC_after_{t}_{c}_{a}")
-                model.addConstr(PEVc[t, c, a] == 0, name=f"EV_Charge_after_{t}_{c}_{a}")
-                model.addConstr(PEVd[t, c, a] == 0, name=f"EV_Discharge_after_{t}_{c}_{a}")
-            for n in range(len(Ωa[a]['arrival'])):
-                if t == Ωa[a]['departure'][n]:
-                    model.addConstr(SoCEV[t, c, a] == 1, name=f"EV_SoC_end_{t}_{c}_{a}")
-                if t > Ωa[a]['arrival'][n] and t <= Ωa[a]['departure'][n]:
-                    model.addConstr(SoCEV[t, c, a] == SoCEV[t-1,c,a] + Δt * (PEVc[t,c,a] - PEVd[t,c,a])/Ωa[a]['Emax'][n], name=f"EV_SoC_{t}_{c}_{a}")
-                    model.addConstr(SoCEV[t, c, a] <= 1, name=f"EV_SoC_max_{t}_{c}_{a}")
-                    model.addConstr(PEVc[t,c,a] <= (1 - SoCEV[t-1, c, a]) * Ωa[a]['Emax'][n]/Δt, name=f"EV_Charge_Constraint_{t}_{c}_{a}")
-                    model.addConstr(PEVd[t,c,a] <= SoCEV[t-1, c, a] * Ωa[a]['Emax'][n]/Δt, name=f"EV_Discharge_Constraint_{t}_{c}_{a}")
-                    model.addConstr(PEVd[t,c,a] <= par['EVPmaxd'] - (par['EVPmaxd']/par['EVPmaxc'])*PEVc[t,c,a], name=f"EV_Discharge_Max_{t}_{c}_{a}")
-                
-                elif t == Ωa[a]['arrival'][n]:
-                    model.addConstr(SoCEV[t, c, a] == Ωa[a]['SoCini'][n], name=f"EV_SoC_ini_{t}_{c}_{a}")
-                elif n < len(Ωa[a]['arrival']) - 1:
-                    if t > Ωa[a]['departure'][n] and t < Ωa[a]['arrival'][n+1]:
-                        model.addConstr(SoCEV[t, c, a] == 0, name=f"EV_SoC_between_{t}_{c}_{a}")
-                        model.addConstr(PEVc[t, c, a] == 0, name=f"EV_Charge_between_{t}_{c}_{a}")
-                        model.addConstr(PEVd[t, c, a] == 0, name=f"EV_Discharge_between_{t}_{c}_{a}")
+    for s in Ωs:
+        for c in Ωc:
+            for a in Ωa:
+                if t < Ωa[a]['arrival'][0]:
+                    model.addConstr(SoCEV[t, s, c, a] == 0, name=f"EV_SoC_before_{t}_{c}_{a}")
+                    model.addConstr(PEVc[t, s, c, a] == 0, name=f"EV_Charge_before_{t}_{c}_{a}")
+                    model.addConstr(PEVd[t, s, c, a] == 0, name=f"EV_Discharge_before_{t}_{c}_{a}")
+                elif t > Ωa[a]['departure'][-1]:
+                    model.addConstr(SoCEV[t, s, c, a] == 0, name=f"EV_SoC_after_{t}_{c}_{a}")
+                    model.addConstr(PEVc[t, s, c, a] == 0, name=f"EV_Charge_after_{t}_{c}_{a}")
+                    model.addConstr(PEVd[t, s, c, a] == 0, name=f"EV_Discharge_after_{t}_{c}_{a}")
+                for n in range(len(Ωa[a]['arrival'])):
+                    if t == Ωa[a]['departure'][n]:
+                        model.addConstr(SoCEV[t, s, c, a] == 1, name=f"EV_SoC_end_{t}_{c}_{a}")
+                    if t > Ωa[a]['arrival'][n] and t <= Ωa[a]['departure'][n]:
+                        model.addConstr(SoCEV[t, s, c, a] == SoCEV[t-1, s, c, a] + Δt * (PEVc[t, s, c, a] - PEVd[t, s, c, a])/Ωa[a]['Emax'][n], name=f"EV_SoC_{t}_{c}_{a}")
+                        model.addConstr(SoCEV[t, s, c, a] <= 1, name=f"EV_SoC_max_{t}_{c}_{a}")
+                        model.addConstr(PEVc[t, s, c, a] <= (1 - SoCEV[t-1, s, c, a]) * Ωa[a]['Emax'][n]/Δt, name=f"EV_Charge_Constraint_{t}_{c}_{a}")
+                        model.addConstr(PEVd[t, s, c, a] <= SoCEV[t-1, s, c, a] * Ωa[a]['Emax'][n]/Δt, name=f"EV_Discharge_Constraint_{t}_{c}_{a}")
+                        model.addConstr(PEVd[t, s, c, a] <= par['EVPmaxd'] - (par['EVPmaxd']/par['EVPmaxc'])*PEVc[t, s, c, a], name=f"EV_Discharge_Max_{t}_{c}_{a}")
+                    
+                    elif t == Ωa[a]['arrival'][n]:
+                        model.addConstr(SoCEV[t, s, c, a] == Ωa[a]['SoCini'][n], name=f"EV_SoC_ini_{t}_{c}_{a}")
+                    elif n < len(Ωa[a]['arrival']) - 1:
+                        if t > Ωa[a]['departure'][n] and t < Ωa[a]['arrival'][n+1]:
+                            model.addConstr(SoCEV[t, s, c, a] == 0, name=f"EV_SoC_between_{t}_{c}_{a}")
+                            model.addConstr(PEVc[t, s, c, a] == 0, name=f"EV_Charge_between_{t}_{c}_{a}")
+                            model.addConstr(PEVd[t, s, c, a] == 0, name=f"EV_Discharge_between_{t}_{c}_{a}")
 
-            # model.addConstr(PEVc[t,c,a] <= par['EVPmaxc'], name=f"EV_ChargeMax_{t}_{c}_{a}")
-            # model.addConstr(PEVd[t,c,a] <= par['EVPmaxd'], name=f"EV_DischargeMax_{t}_{c}_{a}")
-  
+                # model.addConstr(PEVc[t,c,a] <= par['EVPmaxc'], name=f"EV_ChargeMax_{t}_{c}_{a}")
+                # model.addConstr(PEVd[t,c,a] <= par['EVPmaxd'], name=f"EV_DischargeMax_{t}_{c}_{a}")
+    
 
 
 # Active power balance constraint
@@ -113,8 +114,8 @@ for t in Ωt:
         for c in Ωc:
             for a in Ωa:
                 model.addConstr(
-                    PS[t, s, c, a] + PGD[t, c, a] + fp[s]['pv'][t-1] * PPVmax + PAEd[t, s, c, a] + PEVd[t, c, a] ==
-                    par['MaxL']*fp[s]['load'][t-1] * (1 - xD[t, s, c, a]) + PAEc[t, s, c, a] + PEVc[t, c, a],
+                    PS[t, s, c, a] + PGD[t, c, a] + fp[s]['pv'][t-1] * PPVmax + PAEd[t, s, c, a] + PEVd[t, s, c, a] ==
+                    par['MaxL']*fp[s]['load'][t-1] * (1 - xD[t, s, c, a]) + PAEc[t, s, c, a] + PEVc[t, s, c, a],
                     name=f"Active_Power_Balance_{t}_{s}_{c}_{a}"
             )
 
@@ -188,7 +189,7 @@ for t in Ωt:
                 if t < c:
                     model.addConstr(EAE[t, s, c, a] >= 0.5*EAEmax, name=f"BESS_before_Contingency_Operation_{t}_{s}_{c}_{a}")
                     model.addConstr(EAE[t, s, c, a] == EAE[t, s, 0, a], name=f"BESS_Contingency_Operation_{t}_{s}_{c}_{a}")
-                    model.addConstr(SoCEV[t, c, a] == SoCEV[t, 0, a], name=f"EV_before_Contingency_Operation_{t}_{s}_{c}_{a}")
+                    model.addConstr(SoCEV[t, s, c, a] == SoCEV[t, s, 0, a], name=f"EV_before_Contingency_Operation_{t}_{s}_{c}_{a}")
 
 
 # Solve the model
@@ -208,9 +209,9 @@ PS_values   = {(t, s, c, a): PS[t, s, c, a].x for t in Ωt for s in Ωs for c in
 PGD_values  = {(t, c, a): PGD[t, c, a].x for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
 xD_values   = {(t, s, c, a): xD[t, s, c, a].x for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
 
-PEVc_values = {(t, c, a): PEVc[t, c, a].x for t in Ωt for c in Ωc for a in Ωa}
-PEVd_values = {(t, c, a): PEVd[t, c, a].x for t in Ωt for c in Ωc for a in Ωa}
-SoCEV_values  = {(t, c, a): SoCEV[t, c, a].x for t in Ωt for c in Ωc for a in Ωa}
+PEVc_values = {(t, c, a): PEVc[t, s, c, a].x for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
+PEVd_values = {(t, c, a): PEVd[t, s, c, a].x for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
+SoCEV_values  = {(t, c, a): SoCEV[t, s, c, a].x for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
 
 
 PAEc_values = {(t, c, a): PAEc[t, s, c, a].x for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
