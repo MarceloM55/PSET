@@ -168,7 +168,7 @@ for t in Ωt:
                 model.addConstr(EAE[t, s, c, a] <= EAEmax, name=f"Max_Energy_Storage_Capacity_{t}_{s}_{c}_{a}")
                 model.addConstr(PAEc[t, s, c, a] <= PAEmax, name=f"Max_Injection_Power_{t}_{s}_{c}_{a}")
                 model.addConstr(PAEd[t, s, c, a] <= PAEmax, name=f"Max_Extraction_Power_{t}_{s}_{c}_{a}")
-                model.addConstr(PAEmax <= EAEmax, name=f"Max_Injection_Power_{t}_{s}_{c}_{a}")
+                model.addConstr(PAEmax <= EAEmax * 0.5, name=f"Max_Injection_Power_{t}_{s}_{c}_{a}")
 
 
            
@@ -204,12 +204,6 @@ print(PAEmax)
 print(EAEmax)
 print(f'total execution time (LP): {end - start} seconds')
 
-for t in Ωt:
-    for s in Ωs:
-        for c in Ωc:
-            for a in Ωa:
-                if (not(PAEc[t, s, c, a] == 0) and not(PAEd[t, s, c, a] == 0)):
-                    print("DEU ERRO")
 
 # Extract the values for plotting
 PS_values   = {(t, s, c, a): PS[t, s, c, a].x for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
