@@ -119,7 +119,6 @@ for t in Ωt:
             )
 
 
-
 # Substation capacity constraint
 for t in Ωt:
     for s in Ωs:
@@ -223,38 +222,38 @@ PAEmax_value = PAEmax.x
 EAEmax_value = EAEmax.x
 
 
-# if not os.path.exists("Results"):
-#     os.makedirs("Results")
+if not os.path.exists("Results"):
+    os.makedirs("Results")
 
 
-# for s in Ωs:
-#     for c in Ωc:
-#         for a in Ωa:
-#             plt.figure()
-#             plt.plot(Ωt, [PS_values[t, s, c, a] for t in Ωt], label="EDS")
-#             plt.plot(Ωt, [PGD_values[t, c, a] for t in Ωt], label="Thermal Generator")
-#             plt.plot(Ωt, [fp[s]['load'][t-1]*par['MaxL']*(1 - xD_values[t,s,c,a]) for t in Ωt], label="Demand")
-#             plt.plot(Ωt, [-1*fp[s]['pv'][t-1] * PPVmax_value  for t in Ωt], label="PV")
-#             if EAEmax_value > 0:
-#                 plt.plot(Ωt, [PAEc_values[t, c, a] - PAEd_values[t, c, a] for t in Ωt], label="BESS")
-#             plt.plot(Ωt, [PEVc_values[t, c, a] - PEVd_values[t, c, a] for t in Ωt], label="EV")
-#             plt.legend()
-#             plt.xlabel("Timestamp")
-#             plt.ylabel("Power [kW]")
-#             plt.savefig(f"Results/operation_s{s}_c{c}_a{a}.png")
-#             plt.close()
+for s in Ωs:
+    for c in Ωc:
+        for a in Ωa:
+            plt.figure()
+            plt.plot(Ωt, [PS_values[t, s, c, a] for t in Ωt], label="EDS")
+            plt.plot(Ωt, [PGD_values[t, c, a] for t in Ωt], label="Thermal Generator")
+            plt.plot(Ωt, [fp[s]['load'][t-1]*par['MaxL']*(1 - xD_values[t,s,c,a]) for t in Ωt], label="Demand")
+            plt.plot(Ωt, [-1*fp[s]['pv'][t-1] * PPVmax_value  for t in Ωt], label="PV")
+            if EAEmax_value > 0:
+                plt.plot(Ωt, [PAEc_values[t, c, a] - PAEd_values[t, c, a] for t in Ωt], label="BESS")
+            plt.plot(Ωt, [PEVc_values[t, c, a] - PEVd_values[t, c, a] for t in Ωt], label="EV")
+            plt.legend()
+            plt.xlabel("Timestamp")
+            plt.ylabel("Power [kW]")
+            plt.savefig(f"Results/operation_s{s}_c{c}_a{a}.png")
+            plt.close()
 
-# for c in Ωc:
-#     for a in Ωa:
-#         plt.figure()
-#         if EAEmax_value > 0:
-#             plt.plot(Ωt, [EAE_values[t, c, a]/EAEmax_value for t in Ωt], label="EAE")
-#         plt.plot(Ωt, [SoCEV_values[t, c, a] for t in Ωt], label="SoCEV")
-#         plt.legend()
-#         plt.xlabel("Timestamp")
-#         plt.ylabel("SoC")
-#         plt.savefig(f"Results/storage_c{c}_a{a}.png")
-#         plt.close()
+for c in Ωc:
+    for a in Ωa:
+        plt.figure()
+        if EAEmax_value > 0:
+            plt.plot(Ωt, [EAE_values[t, c, a]/EAEmax_value for t in Ωt], label="EAE")
+        plt.plot(Ωt, [SoCEV_values[t, c, a] for t in Ωt], label="SoCEV")
+        plt.legend()
+        plt.xlabel("Timestamp")
+        plt.ylabel("SoC")
+        plt.savefig(f"Results/storage_c{c}_a{a}.png")
+        plt.close()
 
 
 
