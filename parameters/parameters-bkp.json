@@ -19,7 +19,7 @@
     "EVPmaxc": 50,
     "EVPmaxd": 0,
     "rate": 0.03,
-    "nyears": 1,
+    "nyears": 5,
     "GDM": 10, 
     "EVDM": 10,
     "cOS": [
