@@ -167,7 +167,7 @@ for t in Ωt:
                 model.addConstr(EAE[t, s, c, a] <= EAEmax, name=f"Max_Energy_Storage_Capacity_{t}_{s}_{c}_{a}")
                 model.addConstr(PAEc[t, s, c, a] <= PAEmax, name=f"Max_Injection_Power_{t}_{s}_{c}_{a}")
                 model.addConstr(PAEd[t, s, c, a] <= PAEmax, name=f"Max_Extraction_Power_{t}_{s}_{c}_{a}")
-                model.addConstr(PAEmax <= EAEmax * 0.5, name=f"Max_Injection_Power_{t}_{s}_{c}_{a}")
+
 
            
 
