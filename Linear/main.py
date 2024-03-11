@@ -23,7 +23,7 @@ contingency = json.load(open('parameters/contingency.json', 'r'))
 start = time.time()
 
 # Create a Gurobi model
-model = gp.Model(par['IonLitResNCAInd']['model name'])
+model = gp.Model(par['IonLitLFPInd']['model name'])
 
 # Variables
 PPVmax = model.addVar(name="PPVmax", lb=0)
@@ -36,14 +36,14 @@ CAPEX = model.addVar(name="CAPEX", lb=0)
 OPEX_yearly = model.addVar(name="OPEX", lb=0)
 
 
-PS   = {(t, s, c, a): model.addVar(name=f"PS_{t}_{s}_{c}_{a}", lb=par['IonLitResNCAInd']['PSmin'], ub=par['IonLitResNCAInd']['PSmax'])    for t in Ωt for s in Ωs for c in Ωc for a in Ωa} # Substation Power in time t, contingency c, and EV scenario a
+PS   = {(t, s, c, a): model.addVar(name=f"PS_{t}_{s}_{c}_{a}", lb=par['IonLitLFPInd']['PSmin'], ub=par['IonLitLFPInd']['PSmax'])    for t in Ωt for s in Ωs for c in Ωc for a in Ωa} # Substation Power in time t, contingency c, and EV scenario a
 PSp   = {(t, s, c, a): model.addVar(name=f"PSp_{t}_{s}_{c}_{a}", lb=0)                  for t in Ωt for s in Ωs for c in Ωc for a in Ωa} # Substation Power in time t, contingency c, and EV scenario a
 PSn   = {(t, s, c, a): model.addVar(name=f"PSn_{t}_{s}_{c}_{a}", lb=0)                  for t in Ωt for s in Ωs for c in Ωc for a in Ωa} # Substation Power in time t, contingency c, and EV scenario a
 
 
 xD   = {(t, s, c, a): model.addVar(name=f"xD_{t}_{s}_{c}_{a}", lb=0, ub=1)              for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
 
-PGD  = {(t, s, c, a): model.addVar(name=f"PGD_{t}_{c}_{a}", lb=0, ub=par['IonLitResNCAInd']['MaxGD'])     for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
+PGD  = {(t, s, c, a): model.addVar(name=f"PGD_{t}_{c}_{a}", lb=0, ub=par['IonLitLFPInd']['MaxGD'])     for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
 
 PAEc = {(t, s, c, a): model.addVar(name=f"PAEi_{t}_{s}_{c}_{a}", lb=0)                     for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
 PAEd = {(t, s, c, a): model.addVar(name=f"PAEe_{t}_{s}_{c}_{a}", lb=0)                     for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
@@ -51,8 +51,8 @@ EAE  = {(t, s, c, a): model.addVar(name=f"EAE_{t}_{s}_{c}_{a}", lb=0)           
 
 
 
-PEVc = {(t, s, c, a): model.addVar(name=f"PAEi_{t}_{s}_{c}_{a}", lb=0, ub=par['IonLitResNCAInd']['EVPmaxc'])  for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
-PEVd = {(t, s, c, a): model.addVar(name=f"PAEe_{t}_{s}_{c}_{a}", lb=0, ub=par['IonLitResNCAInd']['EVPmaxd'])  for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
+PEVc = {(t, s, c, a): model.addVar(name=f"PAEi_{t}_{s}_{c}_{a}", lb=0, ub=par['IonLitLFPInd']['EVPmaxc'])  for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
+PEVd = {(t, s, c, a): model.addVar(name=f"PAEe_{t}_{s}_{c}_{a}", lb=0, ub=par['IonLitLFPInd']['EVPmaxd'])  for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
 SoCEV  = {(t, s, c, a): model.addVar(name=f"EEV_{t}_{s}_{c}_{a}", lb=0)                    for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
 
 
@@ -63,15 +63,15 @@ model.setObjective(OPEX + CAPEX, GRB.MINIMIZE)
 
 # Constraints
 model.addConstr(OPEX_yearly == 
-    365 * gp.quicksum(πs[s] * πc[c] * Δt * par['IonLitResNCAInd']['cOS'][t-1] * PSp[t, s, c, a]    for t in Ωt for s in Ωs for c in Ωc for a in Ωa) +
-    365 * gp.quicksum(πs[s] * πc[c] * Δt * (par['IonLitResNCAInd']['cOT'] + par['IonLitResNCAInd']['GDM']) * PGD[t, s, c, a]            for t in Ωt for s in Ωs for c in Ωc for a in Ωa) +
-    365 * gp.quicksum(πs[s] * πc[c] * Δt * par['IonLitResNCAInd']['EAM'] * PAEd[t, s, c, a]            for t in Ωt for s in Ωs for c in Ωc for a in Ωa) +
-    365 * gp.quicksum(πs[s] * πc[c] * Δt * par['IonLitResNCAInd']['cCC'] * par['IonLitResNCAInd']['MaxL'] * fp[s]["load"][t-1] * xD[t, s, c, a] for t in Ωt for s in Ωs for s in Ωs for c in Ωc for a in Ωa),
+    365 * gp.quicksum(πs[s] * πc[c] * Δt * par['IonLitLFPInd']['cOS'][t-1] * PSp[t, s, c, a]    for t in Ωt for s in Ωs for c in Ωc for a in Ωa) +
+    365 * gp.quicksum(πs[s] * πc[c] * Δt * (par['IonLitLFPInd']['cOT'] + par['IonLitLFPInd']['GDM']) * PGD[t, s, c, a]            for t in Ωt for s in Ωs for c in Ωc for a in Ωa) +
+    365 * gp.quicksum(πs[s] * πc[c] * Δt * ((par['IonLitLFPInd']['EAM'] * (PAEd[t, s, c, a] + PAEc[t, s, c, a])/2)  + (par['IonLitLFPInd']['EVM'] * (PEVd[t, s, c, a])/2))         for t in Ωt for s in Ωs for c in Ωc for a in Ωa) +
+    365 * gp.quicksum(πs[s] * πc[c] * Δt * par['IonLitLFPInd']['cCC'] * par['IonLitLFPInd']['MaxL'] * fp[s]["load"][t-1] * xD[t, s, c, a] for t in Ωt for s in Ωs for s in Ωs for c in Ωc for a in Ωa),
     name="OPEX_yearly"
 )
 
-model.addConstr(CAPEX == par['IonLitResNCAInd']['cIPV'] * PPVmax + par['IonLitResNCAInd']['cIT'] * PGDmax + par['IonLitResNCAInd']['cIPA'] * PAEmax + par['IonLitResNCAInd']['cIEA'] * EAEmax, name="CAPEX")
-model.addConstr(OPEX == gp.quicksum( (1/(1+par['IonLitResNCAInd']['rate'])**y) * OPEX_yearly for y in range(1,par['IonLitResNCAInd']['nyears']+1)))
+model.addConstr(CAPEX == par['IonLitLFPInd']['cIPV'] * PPVmax + par['IonLitLFPInd']['cIT'] * PGDmax + par['IonLitLFPInd']['cIPA'] * PAEmax + par['IonLitLFPInd']['cIEA'] * EAEmax, name="CAPEX")
+model.addConstr(OPEX == gp.quicksum( (1/(1+par['IonLitLFPInd']['rate'])**y) * OPEX_yearly for y in range(1,par['IonLitLFPInd']['nyears']+1)))
 
 # Assuming Ωt is the list of time intervals
 for t in Ωt:
@@ -94,7 +94,7 @@ for t in Ωt:
                         model.addConstr(SoCEV[t, s, c, a] <= 1, name=f"EV_SoC_max_{t}_{c}_{a}")
                         model.addConstr(PEVc[t, s, c, a] <= (1 - SoCEV[t-1, s, c, a]) * Ωa[a]['Emax'][n]/Δt, name=f"EV_Charge_Constraint_{t}_{c}_{a}")
                         model.addConstr(PEVd[t, s, c, a] <= SoCEV[t-1, s, c, a] * Ωa[a]['Emax'][n]/Δt, name=f"EV_Discharge_Constraint_{t}_{c}_{a}")
-                        model.addConstr(PEVd[t, s, c, a] <= par['IonLitResNCAInd']['EVPmaxd'] - (par['IonLitResNCAInd']['EVPmaxd']/par['IonLitResNCAInd']['EVPmaxc'])*PEVc[t, s, c, a], name=f"EV_Discharge_Max_{t}_{c}_{a}")
+                        model.addConstr(PEVd[t, s, c, a] <= par['IonLitLFPInd']['EVPmaxd'] - (par['IonLitLFPInd']['EVPmaxd']/par['IonLitLFPInd']['EVPmaxc'])*PEVc[t, s, c, a], name=f"EV_Discharge_Max_{t}_{c}_{a}")
                     
                     elif t == Ωa[a]['arrival'][n]:
                         model.addConstr(SoCEV[t, s, c, a] == Ωa[a]['SoCini'][n], name=f"EV_SoC_ini_{t}_{c}_{a}")
@@ -104,8 +104,8 @@ for t in Ωt:
                             model.addConstr(PEVc[t, s, c, a] == 0, name=f"EV_Charge_between_{t}_{c}_{a}")
                             model.addConstr(PEVd[t, s, c, a] == 0, name=f"EV_Discharge_between_{t}_{c}_{a}")
 
-                # model.addConstr(PEVc[t,c,a] <= par['IonLitResNCAInd']['EVPmaxc'], name=f"EV_ChargeMax_{t}_{c}_{a}")
-                # model.addConstr(PEVd[t,c,a] <= par['IonLitResNCAInd']['EVPmaxd'], name=f"EV_DischargeMax_{t}_{c}_{a}")
+                # model.addConstr(PEVc[t,c,a] <= par['IonLitLFPInd']['EVPmaxc'], name=f"EV_ChargeMax_{t}_{c}_{a}")
+                # model.addConstr(PEVd[t,c,a] <= par['IonLitLFPInd']['EVPmaxd'], name=f"EV_DischargeMax_{t}_{c}_{a}")
     
 
 
@@ -116,7 +116,7 @@ for t in Ωt:
             for a in Ωa:
                 model.addConstr(
                     PS[t, s, c, a] + PGD[t, s, c, a] + fp[s]['pv'][t-1] * PPVmax + PAEd[t, s, c, a] + PEVd[t, s, c, a] ==
-                    par['IonLitResNCAInd']['MaxL']*fp[s]['load'][t-1] * (1 - xD[t, s, c, a]) + PAEc[t, s, c, a] + PEVc[t, s, c, a],
+                    par['IonLitLFPInd']['MaxL']*fp[s]['load'][t-1] * (1 - xD[t, s, c, a]) + PAEc[t, s, c, a] + PEVc[t, s, c, a],
                     name=f"Active_Power_Balance_{t}_{s}_{c}_{a}"
             )
 
@@ -150,19 +150,19 @@ for t in Ωt:
             for a in Ωa:
                 if t > 1:
                     model.addConstr(
-                        EAE[t, s, c, a] == EAE[t - 1, s, c, a] + par['IonLitResNCAInd']['alpha'] * Δt * PAEc[t, s, c, a] - Δt * PAEd[t, s, c, a] / par['IonLitResNCAInd']['alpha'] - EAE[t, s, c, a] * par['IonLitResNCAInd']['beta'],
+                        EAE[t, s, c, a] == EAE[t - 1, s, c, a] + par['IonLitLFPInd']['alpha'] * Δt * PAEc[t, s, c, a] - Δt * PAEd[t, s, c, a] / par['IonLitLFPInd']['alpha'] - EAE[t, s, c, a] * par['IonLitLFPInd']['beta'],
                         name=f"Energy_Storage_Balance_{t}_{s}_{c}_{a}"
                     )
-                    model.addConstr(PAEc[t, s, c, a] <= (EAEmax - EAE[t-1, s, c, a])/(par['IonLitResNCAInd']['alpha'] * Δt), name=f"Max_Charge_BESS_1_{t}_{s}_{c}_{a}")
-                    model.addConstr(PAEd[t, s, c, a] <= EAE[t-1, s, c, a]*par['IonLitResNCAInd']['alpha']/Δt, name=f"Max_Discharge_BESS_1_{t}_{s}_{c}_{a}")
+                    model.addConstr(PAEc[t, s, c, a] <= (EAEmax - EAE[t-1, s, c, a])/(par['IonLitLFPInd']['alpha'] * Δt), name=f"Max_Charge_BESS_1_{t}_{s}_{c}_{a}")
+                    model.addConstr(PAEd[t, s, c, a] <= EAE[t-1, s, c, a]*par['IonLitLFPInd']['alpha']/Δt, name=f"Max_Discharge_BESS_1_{t}_{s}_{c}_{a}")
                     
                 if t == 1:
                     model.addConstr(
-                        EAE[t, s, c, a] == par['IonLitResNCAInd']['EAE0'] * EAEmax + par['IonLitResNCAInd']['alpha'] * Δt * PAEc[t, s, c, a] - Δt * PAEd[t, s, c, a] / par['IonLitResNCAInd']['alpha'],
+                        EAE[t, s, c, a] == par['IonLitLFPInd']['EAE0'] * EAEmax + par['IonLitLFPInd']['alpha'] * Δt * PAEc[t, s, c, a] - Δt * PAEd[t, s, c, a] / par['IonLitLFPInd']['alpha'],
                         name=f"Initial_Energy_Storage_initial_{t}_{s}_{c}_{a}"
                     )
-                    model.addConstr(PAEc[t, s, c, a] <= (EAEmax - par['IonLitResNCAInd']['EAE0'])/(par['IonLitResNCAInd']['alpha'] * Δt), name=f"Max_Charge_BESS_2_{t}_{s}_{c}_{a}")
-                    model.addConstr(PAEd[t, s, c, a] <= par['IonLitResNCAInd']['EAE0']*par['IonLitResNCAInd']['alpha']/Δt, name=f"Max_Discharge_BESS_2_{t}_{s}_{c}_{a}")
+                    model.addConstr(PAEc[t, s, c, a] <= (EAEmax - par['IonLitLFPInd']['EAE0'])/(par['IonLitLFPInd']['alpha'] * Δt), name=f"Max_Charge_BESS_2_{t}_{s}_{c}_{a}")
+                    model.addConstr(PAEd[t, s, c, a] <= par['IonLitLFPInd']['EAE0']*par['IonLitLFPInd']['alpha']/Δt, name=f"Max_Discharge_BESS_2_{t}_{s}_{c}_{a}")
 
                 model.addConstr(PAEd[t, s, c, a] <= PAEmax - PAEc[t, s, c, a], name=f"Max_Discharge_BESS_General_{t}_{s}_{c}_{a}")
                 model.addConstr(EAE[t, s, c, a] <= EAEmax, name=f"Max_Energy_Storage_Capacity_{t}_{s}_{c}_{a}")
@@ -176,7 +176,7 @@ for t in Ωt:
 # Contingency operation constraint
 for c in Ωc:
     for s in Ωs:
-        for t in range(c, min(max(Ωt), c + int(par['IonLitResNCAInd']['D'] / Δt)) + 1):
+        for t in range(c, min(max(Ωt), c + int(par['IonLitLFPInd']['D'] / Δt)) + 1):
             for a in Ωa:
                 if c != 0:
                     model.addConstr(
@@ -225,6 +225,31 @@ PAEmax_value = PAEmax.x
 EAEmax_value = EAEmax.x
 
 
+
+# Select specific scenarios, c, and a values
+selected_s = '7'
+selected_c = 0
+selected_a = '1'
+
+# Extract the data for the selected c value and all scenarios and a values
+selected_data = []
+for s in Ωs:
+    for a in Ωa:
+        selected_data.append([SoCEV_values[(t, s, selected_c, a)] for t in Ωt])
+
+# Reshape the data into a 2D array for plotting
+selected_data_array = np.array(selected_data).reshape(len(Ωs) * len(Ωa), len(Ωt))
+
+# Generate the heatmap
+plt.figure(figsize=(10, 6))
+plt.imshow(selected_data_array, cmap='hot', interpolation='nearest')
+plt.colorbar(label='Value')
+plt.xlabel('Time (t)')
+plt.ylabel('Scenario (s) * Value of a')
+plt.title(f"Heatmap for all scenarios and a, c={selected_c}")
+plt.show()
+
+
 # if not os.path.exists("Results"):
 #     os.makedirs("Results")
 
@@ -243,7 +268,7 @@ for idx, s in enumerate(Ωs_list[:2]):
         for a in list(Ωa.keys())[:2]:  # Extract keys of Ωa as a list and then slice
             ax.plot(Ωt, [PS_values[t, s, c, a] for t in Ωt], label="EDS")
             ax.plot(Ωt, [PGD_values[t, s, c, a] for t in Ωt], label="Thermal Generator")
-            ax.plot(Ωt, [fp[s]['load'][t-1]*par['IonLitResNCAInd']['MaxL']*(1 - xD_values[t,s,c,a]) for t in Ωt], label="Demand")
+            ax.plot(Ωt, [fp[s]['load'][t-1]*par['IonLitLFPInd']['MaxL']*(1 - xD_values[t,s,c,a]) for t in Ωt], label="Demand")
             ax.plot(Ωt, [-1*fp[s]['pv'][t-1] * PPVmax_value  for t in Ωt], label="PV")
             if EAEmax_value > 0:
                 ax.plot(Ωt, [PAEc_values[t, s, c, a] - PAEd_values[t, s, c, a] for t in Ωt], label="BESS")
@@ -267,9 +292,9 @@ plt.xlabel("Timestamp")
 plt.ylabel("Power [kW]")
 plt.show()
 
-# Plot for par['IonLitResNCAInd']['cOS']
+# Plot for par['IonLitLFPInd']['cOS']
 plt.figure()
-plt.plot(Ωt, [par['IonLitResNCAInd']['cOS'] for _ in Ωt], label="cOS")
+plt.plot(Ωt, [par['IonLitLFPInd']['cOS'] for _ in Ωt], label="cOS")
 
 plt.legend()
 plt.xlabel("Timestamp")
