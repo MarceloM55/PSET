@@ -12,7 +12,7 @@ fp = json.load(open('parameters/scenarios15m.json', 'r'))
 par = json.load(open('parameters/parameters.json', 'r'))
 contingency = json.load(open('parameters/contingency.json', 'r'))
 
-Ωa = json.load(open('parameters/EV.json', 'r'))
+Ωa = json.load(open('parameters/EVscenarios1.json', 'r'))
 Ωt = list(range(1, 97))
 Ωc = contingency['timestamp']
 Ωs = fp.keys() # Load and 
@@ -61,12 +61,16 @@ PEVc = {(t, s, c, a): model.addVar(name=f"PAEi_{t}_{s}_{c}_{a}", lb=0, ub=par[mo
 PEVd = {(t, s, c, a): model.addVar(name=f"PAEe_{t}_{s}_{c}_{a}", lb=0, ub=par[model_name]['EVPmaxd'])  for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
 SoCEV  = {(t, s, c, a): model.addVar(name=f"EEV_{t}_{s}_{c}_{a}", lb=0)                    for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
 
-
+# Variable to store total emissions
+total_emissions = model.addVar(vtype=GRB.CONTINUOUS, name="total_emissions")
  
 
 # Objective function
 model.setObjective(OPEX + CAPEX, GRB.MINIMIZE)
 
+# Constraint: Total emissions is the sum of emissions from different sources
+model.addConstr(total_emissions == gp.quicksum(par[model_name]['GDCO2Op'] * πs[s] * πc[c] * πa * Δt * PGD [t, s, c, a] for t in Ωt for s in Ωs for c in Ωc for a in Ωa) + gp.quicksum(par[model_name]['PSpchs']  * πs[s] * πc[c] * πa * Δt * PSp[t, s, c, a] for t in Ωt for s in Ωs for c in Ωc for a in Ωa), "total_emissions_definition")
+model.addConstr(total_emissions <= 1000)
 # Constraints
 model.addConstr(OPEX_yearly == 
     365 * gp.quicksum(πs[s] * πc[c] * πa * Δt * par[model_name]['cOS'][t-1] * PSp[t, s, c, a]    for t in Ωt for s in Ωs for c in Ωc for a in Ωa) +
@@ -209,7 +213,7 @@ print(PGDmax)
 print(PAEmax)
 print(EAEmax)
 print(f'total execution time (LP): {end - start} seconds')
-
+print(total_emissions)
 
 # Extract the values for plotting
 PS_values   = {(t, s, c, a): PS[t, s, c, a].x for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
@@ -232,7 +236,7 @@ EAEmax_value = EAEmax.x
 
 EAE_norm  = {(t, s, c, a): EAE[t, s, c, a].x/EAEmax_value for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
 
-mpl.rc('font',family = 'serif', serif = 'cmr10')
+""" mpl.rc('font',family = 'serif', serif = 'cmr10')
 plt.rcParams['axes.unicode_minus'] = False
 
 EAE_norm  = {(t, s, c, a): EAE[t, s, c, a].x/EAEmax_value for t in Ωt for s in Ωs for c in Ωc for a in Ωa}
@@ -250,6 +254,12 @@ if not os.path.exists('Results/SoC/png'):
 if not os.path.exists('Results/SoC/svg'):
     os.makedirs('Results/SoC/svg')
 
+if not os.path.exists('Results/SoC/eps'):
+    os.makedirs('Results/SoC/eps')
+
+if not os.path.exists('Results/SoC/pdf'):
+    os.makedirs('Results/SoC/pdf')
+
 if not os.path.exists('Results/Operation'):
     os.makedirs('Results/Operation')
 
@@ -258,6 +268,14 @@ if not os.path.exists('Results/Operation/png'):
 
 if not os.path.exists('Results/Operation/svg'):
     os.makedirs('Results/Operation/svg')
+
+if not os.path.exists('Results/Operation/eps'):
+    os.makedirs('Results/Operation/eps')
+
+if not os.path.exists('Results/Operation/pdf'):
+    os.makedirs('Results/Operation/pdf')
+
+
 
 # Função para converter os dicionários em matrizes para visualização
 def dict_to_matrix(values_dict, Ωt, s, c, Ωa):
@@ -272,33 +290,17 @@ def dict_to_matrix(values_dict, Ωt, s, c, Ωa):
 # Gerar labels de horários de 00:00 até 23:55 de 15 em 15 minutos
 times = [f'{hour:02d}:{minute:02d}' for hour in range(24) for minute in range(0, 60, 15)]
 
-# for s in Ωs:
-#     for c in Ωc:
-#         # Converter dicionários em matrizes para a combinação atual de s e c
-#         SoCEV_matrix = dict_to_matrix(SoCEV_values, Ωt, s, c, Ωa)
-#         EAE_norm_matrix = dict_to_matrix(EAE_norm, Ωt, s, c, Ωa)
-
-#         # Criar e configurar os gráficos
-#         fig, axs = plt.subplots(2, 1, figsize=(8, 8), constrained_layout=True)
-
-#         # Configurar os subplots
-#         for ax, matrix, title in zip(axs, [SoCEV_matrix, EAE_norm_matrix], ['EV SoC', 'BESS SoC']):
-#             im = ax.imshow(matrix, aspect='auto', cmap='viridis')
-#             ax.set_title(f'{title} for s={s}, c={c}')
-#             ax.set_xlabel('Time')
-#             ax.set_ylabel('EV scheduling scenarios')
-#             ax.set_xticks(np.arange(0, len(times), 4))  # Colocar um tick a cada hora
-#             ax.set_xticklabels(times[::4], rotation=45, ha='right')  # Rotacionar labels para melhor visualização
-#             ax.set_yticks(np.arange(len(Ωa)))
-#             ax.set_yticklabels(Ωa)
-
-#         # Barra de cores mais fina e próxima
-#         cbar = fig.colorbar(im, ax=axs, label='Value', shrink=0.8, pad=0.02, aspect=20)
-
-#         # Salvar a figura com um nome único baseado em s e c
-#         plt.savefig(f'Results/SoC/png/soc_s{s}_c{c}.png')
-#         plt.savefig(f'Results/SoC/svg/soc_s{s}_c{c}.svg')
-#         plt.close(fig)  # Fechar a figura para liberar memória
+sname = {
+    '1': 'low PV generation and low demand',
+    '2': 'low PV generation and medium demand',
+    '3': 'low PV generation and high demand',
+    '4': 'medium PV generation and low demand',
+    '5': 'medium PV generation and medium demand',
+    '6': 'medium PV generation and high demand',
+    '7': 'high PV generation and low demand',
+    '8': 'high PV generation and medium demand',
+    '9': 'high PV generation and high demand',
+    }
 
 for s in Ωs:
     for c in Ωc:
@@ -307,53 +309,38 @@ for s in Ωs:
         EAE_norm_matrix = dict_to_matrix(EAE_norm, Ωt, s, c, Ωa)
 
         # Criar e configurar os gráficos
-        fig, axs = plt.subplots(2, 1, figsize=(8, 6), constrained_layout=True)
-        # Ajuste dos dados para uso com pcolormesh
-        x_edges = np.arange(SoCEV_matrix.shape[1])
-        y_edges = np.arange(SoCEV_matrix.shape[0])
+        fig, axs = plt.subplots(2, 1, figsize=(10, 6), constrained_layout=True)
 
-        # Plotar o mapa de calor para SoCEV_values usando pcolormesh
-        ax = axs[0]
-        matrix_pcolormesh = np.zeros((SoCEV_matrix.shape[0], SoCEV_matrix.shape[1]))
-        matrix_pcolormesh[:-1, :-1] = SoCEV_matrix
-        socev_im = ax.pcolormesh(x_edges, y_edges, matrix_pcolormesh, cmap='viridis', edgecolors='w', linewidth=0.01)
-        ax.set_title(f'EV SoC for s={s}, c={times[c]}')
-        ax.set_xlabel('Time')
-        ax.set_ylabel('EV scheduling scenarios')
-        ax.set_xticks(np.arange(0, len(times), 4) + 0.5)
-        ax.set_xticklabels(times[::4], rotation=45, ha='right')
-        ax.set_yticks(np.arange(len(Ωa)) + 0.5)
-        ax.set_yticklabels(Ωa)
+        # Configurar os subplots
+        for ax, matrix, title in zip(axs, [SoCEV_matrix, EAE_norm_matrix], ['EV SoC', 'BESS SoC']):
+            im = ax.imshow(matrix, aspect='auto', cmap='viridis')
+            ax.set_title(f'{title} for s: {sname[s]}, c: {times[c]}')
+            ax.set_xlabel('Time')
+            ax.set_ylabel('EV scheduling scenarios')
+            ax.set_xticks(np.arange(0, len(times), 4))  # Colocar um tick a cada hora
+            ax.set_xticklabels(times[::4], rotation=45, ha='right')  # Rotacionar labels para melhor visualização
+            ax.set_yticks(np.arange(len(Ωa)))
+            ax.set_yticklabels(Ωa)
 
-        # Plotar o mapa de calor para EAE_norm usando pcolormesh
-        ax = axs[1]
-        matrix_pcolormesh = np.zeros((EAE_norm_matrix.shape[0], EAE_norm_matrix.shape[1]))
-        matrix_pcolormesh[:-1, :-1] = EAE_norm_matrix
-        ax.pcolormesh(x_edges, y_edges, matrix_pcolormesh, cmap='viridis', edgecolors='w', linewidth=0.01)
-        ax.set_title(f'BESS SoC for s={s}, c={times[c]}')
-        ax.set_xlabel('Time')
-        ax.set_ylabel('EV scheduling scenarios')
-        ax.set_xticks(np.arange(0, len(times), 4) + 0.5)
-        ax.set_xticklabels(times[::4], rotation=45, ha='right')
-        ax.set_yticks(np.arange(len(Ωa)) + 0.5)
-        ax.set_yticklabels(Ωa)
-
-        # Criar a barra de cores com base no SoCEV_values
-        cbar = fig.colorbar(socev_im, ax=axs, label='Value', shrink=0.8, pad=0.02, aspect=20)
+        # Barra de cores mais fina e próxima
+        cbar = fig.colorbar(im, ax=axs, label='Value', shrink=0.8, pad=0.02, aspect=20)
+        cbar.mappable.set_clim(0, 1)
 
         # Salvar a figura com um nome único baseado em s e c
-        plt.savefig(f'Results/SoC/png/soc_s{s}_c{c}.png')
-        plt.savefig(f'Results/SoC/svg/soc_s{s}_c{c}.svg')
+        # plt.savefig(f'Results/SoC/png/soc_s{s}_c{c}.png')
+        # plt.savefig(f'Results/SoC/svg/soc_s{s}_c{c}.svg')
+        # plt.savefig(f'Results/SoC/eps/soc_s{s}_c{c}.eps')
+        plt.savefig(f'Results/SoC/pdf/soc_s{s}_c{c}.pdf')
         plt.close(fig)  # Fechar a figura para liberar memória
 
 
 for s in Ωs:
     for c in Ωc:
         for a in Ωa:
-            plt.figure(figsize=(8, 4))
+            plt.figure(figsize=(10, 4))
             plt.plot(times, [PS_values[t, s, c, a] for t in Ωt], label="EDS", color='blue')
-            plt.plot(times, [PGD_values[t, s, c, a] for t in Ωt], label="TG", color='red')
-            plt.plot(times, [fp[s]['load'][t-1] * par['IonLitResNCAInd']['MaxL'] * (1 - xD_values[t,s,c,a]) for t in Ωt], label="Demand", color='black', marker='o', linestyle='dashed')
+            plt.plot(times, [-PGD_values[t, s, c, a] for t in Ωt], label="TG", color='red')
+            plt.plot(times, [fp[s]['load'][t-1] * par['IonLitResNCAInd']['MaxL'] * (1 - xD_values[t,s,c,a]) for t in Ωt], label="Demand", color='black', marker='o', linestyle='dashed', markersize=5)
             plt.plot(times, [-1*fp[s]['pv'][t-1] * PPVmax_value  for t in Ωt], label="PV", color='orange')
             if EAEmax_value > 0:
                 plt.bar(Ωt, [PAEc_values[t, s, c, a] - PAEd_values[t, s, c, a] for t in Ωt], label="BESS", color='green')
@@ -365,6 +352,8 @@ for s in Ωs:
             plt.xlabel("Timestamp")
             plt.ylabel("Power [kW]")
             plt.tight_layout()
-            plt.savefig(f"Results/Operation/svg/operation_s{s}_c{c}_a{a}.svg")
-            plt.savefig(f"Results/Operation/png/operation_s{s}_c{c}_a{a}.png")
-            plt.close()
+            # plt.savefig(f"Results/Operation/svg/operation_s{s}_c{c}_a{a}.svg")
+            # plt.savefig(f"Results/Operation/png/operation_s{s}_c{c}_a{a}.png")
+            # plt.savefig(f"Results/Operation/png/operation_s{s}_c{c}_a{a}.eps")
+            plt.savefig(f"Results/Operation/pdf/operation_s{s}_c{c}_a{a}.pdf")
+            plt.close()  """

@@ -60,7 +60,7 @@ print(json.dumps(generated_data, indent=4))
 
 
 # Export data to a file
-with open("EvNormal.json", "w") as json_file:
+with open("EvRedone.json", "w") as json_file:
     json.dump(generated_data, json_file, indent=4)
 
-print("Data exported to EvNormal.json")
+print("Data exported to EvRedone.json")
